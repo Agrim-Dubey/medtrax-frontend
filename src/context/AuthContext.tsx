@@ -85,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setUser(null);
     localStorage.removeItem('medtrax_user');
+    localStorage.removeItem('medtrax_token');
   }, []);
 
   const updateUser = useCallback((userData: Partial<User>) => {

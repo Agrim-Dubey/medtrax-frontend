@@ -43,6 +43,9 @@ export default function Login() {
           navigate('/complete-profile');
           return;
         }
+        if (data.access_token) {
+          localStorage.setItem('medtrax_token', data.access_token);
+        }
         login(data.user);
         toast.success(`Welcome back, ${data.user?.username || 'User'}!`);
         navigate(data.user.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard');
