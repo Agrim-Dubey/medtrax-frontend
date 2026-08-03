@@ -16,6 +16,7 @@ export default function Sidebar() {
   const doctorLinks = [
     { to: `${prefix}/dashboard`, icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: `${prefix}/appointments`, icon: <Calendar size={20} />, label: 'Appointments' },
+    { to: `${prefix}/chat`, icon: <MessageSquare size={20} />, label: 'Messages' },
     { to: `${prefix}/prescriptions`, icon: <FileText size={20} />, label: 'Prescriptions' },
     { to: `${prefix}/community`, icon: <Users size={20} />, label: 'Community' },
     { to: `${prefix}/profile`, icon: <User size={20} />, label: 'Profile' },
@@ -24,8 +25,9 @@ export default function Sidebar() {
   const patientLinks = [
     { to: `${prefix}/dashboard`, icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: `${prefix}/appointments`, icon: <Calendar size={20} />, label: 'Appointments' },
+    { to: `${prefix}/chat`, icon: <MessageSquare size={20} />, label: 'Messages' },
     { to: `${prefix}/prescriptions`, icon: <FileText size={20} />, label: 'Prescriptions' },
-    { to: `${prefix}/community`, icon: <MessageSquare size={20} />, label: 'Community' },
+    { to: `${prefix}/community`, icon: <Users size={20} />, label: 'Community' },
     { to: `${prefix}/profile`, icon: <User size={20} />, label: 'Profile' },
   ];
 

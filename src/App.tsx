@@ -21,6 +21,7 @@ import PatientProfile from './pages/patient/PatientProfile';
 
 import Prescriptions from './pages/Prescriptions';
 import Community from './pages/Community';
+import Chat from './pages/Chat';
 
 function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, loading } = useAuth();
@@ -52,6 +53,7 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DoctorDashboard />} />
             <Route path="appointments" element={<DoctorAppointments />} />
+            <Route path="chat" element={<Chat />} />
             <Route path="prescriptions" element={<Prescriptions />} />
             <Route path="community" element={<Community />} />
             <Route path="profile" element={<DoctorProfile />} />
@@ -61,6 +63,7 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<PatientDashboard />} />
             <Route path="appointments" element={<PatientAppointments />} />
+            <Route path="chat" element={<Chat />} />
             <Route path="prescriptions" element={<Prescriptions />} />
             <Route path="community" element={<Community />} />
             <Route path="profile" element={<PatientProfile />} />
