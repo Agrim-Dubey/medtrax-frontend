@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Check, X, Clock } from 'lucide-react';
+import { Calendar, Check, X, Clock, Video, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { appointmentsAPI } from '../../api/appointments';
 
 export default function DoctorAppointments() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'requests' | 'all'>('requests');
   const [requests, setRequests] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -63,7 +65,7 @@ export default function DoctorAppointments() {
         appointments.length === 0 ? <div className="empty-state"><Calendar size={48} /><h3>No appointments yet</h3></div> :
         <motion.div className="glass-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <table className="data-table">
-            <thead><tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th></tr></thead>
+            <thead><tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
               {appointments.map((a: any) => (
                 <tr key={a.id}>
@@ -72,6 +74,30 @@ export default function DoctorAppointments() {
                   <td>{a.appointment_time_formatted || a.appointment_time}</td>
                   <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.reason || '—'}</td>
                   <td><span className={`badge badge-${a.status}`}>{a.status}</span></td>
+                  <td>
+                    {a.status === 'confirmed' ? (
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                          onClick={() => navigate(`/doctor/video/${a.id}`)}
+                          title="Join Video Consultation"
+                        >
+                          <Video size={13} /> Video
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                          onClick={() => navigate('/doctor/chat')}
+                          title="Open Chat"
+                        >
+                          <MessageSquare size={13} />
+                        </button>
+                      </div>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
