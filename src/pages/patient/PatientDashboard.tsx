@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, AlertCircle, Video, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { patientDashboardAPI } from '../../api/dashboard';
 import { useAuth } from '../../context/AuthContext';
 import Loader from '../../components/Loader';
 
 export default function PatientDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<any>(null);
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [recent, setRecent] = useState<any[]>([]);
@@ -58,9 +60,21 @@ export default function PatientDashboard() {
           {upcoming.length === 0 ? <div className="empty-state"><Calendar size={40} /><h3>No upcoming appointments</h3></div> :
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {upcoming.map((a: any) => (
-                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)' }}>
+                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', flexWrap: 'wrap', gap: 8 }}>
                   <div><strong style={{ fontSize: '0.88rem' }}>{a.doctor_name}</strong><p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{a.specialization || 'General'}</p></div>
-                  <div style={{ textAlign: 'right' }}><p style={{ color: 'var(--accent)', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}>{a.appointment_date || a.date}</p><p style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{a.appointment_time_formatted || a.appointment_time || a.time}</p></div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ textAlign: 'right' }}><p style={{ color: 'var(--accent)', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}>{a.appointment_date || a.date}</p><p style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{a.appointment_time_formatted || a.appointment_time || a.time}</p></div>
+                    {a.status === 'confirmed' && (
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button className="btn btn-primary btn-sm" style={{ padding: '4px 8px' }} onClick={() => navigate(`/patient/video/${a.id}`)} title="Join Video">
+                          <Video size={13} />
+                        </button>
+                        <button className="btn btn-secondary btn-sm" style={{ padding: '4px 8px' }} onClick={() => navigate('/patient/chat')} title="Open Chat">
+                          <MessageSquare size={13} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

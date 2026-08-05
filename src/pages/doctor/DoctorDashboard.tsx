@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Users, Clock, CheckCircle, Star, TrendingUp } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, Star, TrendingUp, Video, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { doctorDashboardAPI } from '../../api/dashboard';
 import { useAuth } from '../../context/AuthContext';
 import Loader from '../../components/Loader';
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState<any>(null);
   const [today, setToday] = useState<any[]>([]);
   const [upcoming, setUpcoming] = useState<any[]>([]);
@@ -67,13 +69,37 @@ export default function DoctorDashboard() {
             <div className="empty-state"><Calendar size={40} /><h3>No appointments today</h3><p>Your schedule is clear</p></div>
           ) : (
             <table className="data-table">
-              <thead><tr><th>Patient</th><th>Time</th><th>Status</th></tr></thead>
+              <thead><tr><th>Patient</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {today.map((apt: any) => (
                   <tr key={apt.id}>
                     <td><strong>{apt.patient_name}</strong></td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{apt.appointment_time_formatted || apt.appointment_time}</td>
                     <td><span className={`badge badge-${apt.status}`}>{apt.status}</span></td>
+                    <td>
+                      {apt.status === 'confirmed' ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ padding: '3px 7px', fontSize: '0.72rem' }}
+                            onClick={() => navigate(`/doctor/video/${apt.id}`)}
+                            title="Start Video Consultation"
+                          >
+                            <Video size={12} />
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '3px 7px', fontSize: '0.72rem' }}
+                            onClick={() => navigate('/doctor/chat')}
+                            title="Open Chat"
+                          >
+                            <MessageSquare size={12} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>—</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
