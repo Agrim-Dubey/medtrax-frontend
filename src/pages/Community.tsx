@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, ThumbsUp, Eye, Send, ArrowLeft, Plus } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Eye, Send, ArrowLeft, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { communityAPI } from '../api/community';
 import { useAuth } from '../context/AuthContext';
@@ -58,6 +58,19 @@ export default function Community() {
     } catch { toast.error('Failed'); }
   };
 
+  const handleDeletePost = async (slug: string) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    try {
+      await communityAPI.deletePost(slug);
+      toast.success('Post deleted successfully');
+      setView('list');
+      setSelectedPost(null);
+      loadPosts(activeCategory);
+    } catch {
+      toast.error('Failed to delete post');
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createForm.title || !createForm.content) return toast.error('Fill title and content');
@@ -99,11 +112,28 @@ export default function Community() {
   }
 
   if (view === 'detail' && selectedPost) {
+    const isAuthor = selectedPost.author === user?.user_id;
+
     return (
       <div>
-        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div><h1>{selectedPost.title}</h1><p>By {selectedPost.author_name || selectedPost.author?.username || 'Unknown'}</p></div>
-          <button className="btn btn-secondary btn-sm" onClick={() => { setView('list'); setSelectedPost(null); }}><ArrowLeft size={16} /> Back</button>
+        <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1>{selectedPost.title}</h1>
+            <p>
+              By {selectedPost.author_name || selectedPost.author?.username || 'Unknown'}{' '}
+              {selectedPost.author_role ? `(${selectedPost.author_role})` : ''} • Category: {selectedPost.category?.name || 'General'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {isAuthor && (
+              <button className="btn btn-danger btn-sm" onClick={() => handleDeletePost(selectedPost.slug)}>
+                <Trash2 size={16} /> Delete
+              </button>
+            )}
+            <button className="btn btn-secondary btn-sm" onClick={() => { setView('list'); setSelectedPost(null); }}>
+              <ArrowLeft size={16} /> Back
+            </button>
+          </div>
         </div>
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div style={{ fontSize: '0.95rem', lineHeight: 1.8, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{selectedPost.content}</div>
