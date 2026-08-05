@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
@@ -78,7 +78,7 @@ export default function Prescriptions() {
 
   const [labTests, setLabTests] = useState<LabTestItem[]>([]);
 
-  const loadPrescriptions = async () => {
+  const loadPrescriptions = useCallback(async () => {
     setLoading(true);
     try {
       const res = isDoctor
@@ -89,11 +89,11 @@ export default function Prescriptions() {
       // silent
     }
     setLoading(false);
-  };
+  }, [isDoctor]);
 
   useEffect(() => {
     loadPrescriptions();
-  }, [isDoctor]);
+  }, [loadPrescriptions]);
 
   const openCreateModal = async () => {
     setIsCreateOpen(true);

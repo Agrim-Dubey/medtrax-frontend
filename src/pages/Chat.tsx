@@ -83,7 +83,7 @@ export default function Chat() {
   }, [loadRooms]);
 
   // Load Pending Requests count for doctor
-  const loadPendingRequests = async () => {
+  const loadPendingRequests = useCallback(async () => {
     if (!isDoctor) return;
     try {
       const res = await chatAPI.getPendingDoctorConnections();
@@ -91,13 +91,13 @@ export default function Chat() {
     } catch {
       // silent
     }
-  };
+  }, [isDoctor]);
 
   useEffect(() => {
     if (isDoctor) {
       loadPendingRequests();
     }
-  }, [isDoctor]);
+  }, [isDoctor, loadPendingRequests]);
 
   // Handle Room Selection & WebSocket connection
   useEffect(() => {

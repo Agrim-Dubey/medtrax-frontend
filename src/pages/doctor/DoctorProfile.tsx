@@ -4,6 +4,31 @@ import { User, Save, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { doctorDashboardAPI } from '../../api/dashboard';
 
+interface FieldProps {
+  label: string;
+  field: string;
+  readonly?: boolean;
+  editing: boolean;
+  form: any;
+  profile: any;
+  onChange: (k: string, v: any) => void;
+}
+
+function ProfileField({ label, field, readonly, editing, form, profile, onChange }: FieldProps) {
+  return (
+    <div className="form-group">
+      <label className="form-label">{label}</label>
+      {editing && !readonly ? (
+        <input className="form-input" value={form[field] || ''} onChange={e => onChange(field, e.target.value)} />
+      ) : (
+        <p style={{ fontSize: '0.95rem', padding: '10px 0', color: profile?.[field] ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+          {profile?.[field] || '—'}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function DoctorProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [editing, setEditing] = useState(false);
@@ -37,12 +62,17 @@ export default function DoctorProfile() {
   if (loading) return <div className="loading-container"><div className="spinner" /></div>;
   if (!profile) return <div className="empty-state"><User size={48} /><h3>Profile not found</h3></div>;
 
-  const Field = ({ label, field, readonly }: { label: string; field: string; readonly?: boolean }) => (
-    <div className="form-group">
-      <label className="form-label">{label}</label>
-      {editing && !readonly ? <input className="form-input" value={form[field] || ''} onChange={e => set(field, e.target.value)} /> :
-        <p style={{ fontSize: '0.95rem', padding: '10px 0', color: profile[field] ? 'var(--text-primary)' : 'var(--text-muted)' }}>{profile[field] || '—'}</p>}
-    </div>
+  const renderField = (label: string, field: string, readonly?: boolean) => (
+    <ProfileField
+      key={field}
+      label={label}
+      field={field}
+      readonly={readonly}
+      editing={editing}
+      form={form}
+      profile={profile}
+      onChange={set}
+    />
   );
 
   return (
@@ -61,47 +91,47 @@ export default function DoctorProfile() {
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 16, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}><User size={18} /> Personal</h3>
           <div className="profile-grid">
-            <Field label="First Name" field="first_name" />
-            <Field label="Last Name" field="last_name" />
-            <Field label="Email" field="email" readonly />
-            <Field label="Date of Birth" field="date_of_birth" readonly />
-            <Field label="Gender" field="gender" readonly />
-            <Field label="Blood Group" field="blood_group" readonly />
-            <Field label="Marital Status" field="marital_status" />
+            {renderField("First Name", "first_name")}
+            {renderField("Last Name", "last_name")}
+            {renderField("Email", "email", true)}
+            {renderField("Date of Birth", "date_of_birth", true)}
+            {renderField("Gender", "gender", true)}
+            {renderField("Blood Group", "blood_group", true)}
+            {renderField("Marital Status", "marital_status")}
           </div>
         </motion.div>
 
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 16, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}><Shield size={18} /> Professional</h3>
           <div className="profile-grid">
-            <Field label="Specialization" field="specialization" readonly />
-            <Field label="Registration No." field="registration_number" readonly />
-            <Field label="Qualification" field="qualification" />
-            <Field label="Department" field="department" />
-            <Field label="Experience (yrs)" field="years_of_experience" />
-            <Field label="Clinic Name" field="clinic_name" />
+            {renderField("Specialization", "specialization", true)}
+            {renderField("Registration No.", "registration_number", true)}
+            {renderField("Qualification", "qualification")}
+            {renderField("Department", "department")}
+            {renderField("Experience (yrs)", "years_of_experience")}
+            {renderField("Clinic Name", "clinic_name")}
           </div>
         </motion.div>
 
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 16, color: 'var(--accent)' }}>Contact</h3>
           <div className="profile-grid">
-            <Field label="Phone" field="phone_number" />
-            <Field label="Alt. Phone" field="alternate_phone_number" />
-            <Field label="Alt. Email" field="alternate_email" />
-            <Field label="Address" field="address" />
-            <Field label="City" field="city" />
-            <Field label="State" field="state" />
-            <Field label="Pincode" field="pincode" />
-            <Field label="Country" field="country" />
+            {renderField("Phone", "phone_number")}
+            {renderField("Alt. Phone", "alternate_phone_number")}
+            {renderField("Alt. Email", "alternate_email")}
+            {renderField("Address", "address")}
+            {renderField("City", "city")}
+            {renderField("State", "state")}
+            {renderField("Pincode", "pincode")}
+            {renderField("Country", "country")}
           </div>
         </motion.div>
 
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 16, color: 'var(--accent)' }}>Emergency</h3>
           <div className="profile-grid">
-            <Field label="Contact Person" field="emergency_contact_person" />
-            <Field label="Contact Number" field="emergency_contact_number" />
+            {renderField("Contact Person", "emergency_contact_person")}
+            {renderField("Contact Number", "emergency_contact_number")}
           </div>
           <div style={{ marginTop: 16, padding: 12, background: profile.is_approved ? 'rgba(52,211,153,0.1)' : 'rgba(251,191,36,0.1)', borderRadius: 'var(--radius-md)', border: `1px solid ${profile.is_approved ? 'var(--success)' : 'var(--warning)'}` }}>
             <p style={{ fontSize: '0.85rem', color: profile.is_approved ? 'var(--success)' : 'var(--warning)', fontWeight: 600 }}>

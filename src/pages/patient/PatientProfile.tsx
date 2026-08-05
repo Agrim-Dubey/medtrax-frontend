@@ -4,6 +4,36 @@ import { User, Save, Heart, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { patientDashboardAPI } from '../../api/dashboard';
 
+interface PatientFieldProps {
+  label: string;
+  field: string;
+  readonly?: boolean;
+  type?: string;
+  editing: boolean;
+  form: any;
+  profile: any;
+  onChange: (k: string, v: any) => void;
+}
+
+function PatientProfileField({ label, field, readonly, type, editing, form, profile, onChange }: PatientFieldProps) {
+  return (
+    <div className="form-group">
+      <label className="form-label">{label}</label>
+      {editing && !readonly ? (
+        type === 'textarea' ? (
+          <textarea className="form-textarea" value={form[field] || ''} onChange={e => onChange(field, e.target.value)} rows={2} />
+        ) : (
+          <input className="form-input" value={form[field] || ''} onChange={e => onChange(field, e.target.value)} />
+        )
+      ) : (
+        <p style={{ fontSize: '0.95rem', padding: '10px 0', color: profile?.[field] ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+          {String(profile?.[field] || '—')}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function PatientProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [editing, setEditing] = useState(false);
@@ -33,14 +63,18 @@ export default function PatientProfile() {
   if (loading) return <div className="loading-container"><div className="spinner" /></div>;
   if (!profile) return <div className="empty-state"><User size={48} /><h3>Profile not found</h3></div>;
 
-  const Field = ({ label, field, readonly, type }: { label: string; field: string; readonly?: boolean; type?: string }) => (
-    <div className="form-group">
-      <label className="form-label">{label}</label>
-      {editing && !readonly ? (
-        type === 'textarea' ? <textarea className="form-textarea" value={form[field] || ''} onChange={e => set(field, e.target.value)} rows={2} /> :
-        <input className="form-input" value={form[field] || ''} onChange={e => set(field, e.target.value)} />
-      ) : <p style={{ fontSize: '0.95rem', padding: '10px 0', color: profile[field] ? 'var(--text-primary)' : 'var(--text-muted)' }}>{String(profile[field] || '—')}</p>}
-    </div>
+  const renderField = (label: string, field: string, readonly?: boolean, type?: string) => (
+    <PatientProfileField
+      key={field}
+      label={label}
+      field={field}
+      readonly={readonly}
+      type={type}
+      editing={editing}
+      form={form}
+      profile={profile}
+      onChange={set}
+    />
   );
 
   return (
@@ -58,31 +92,36 @@ export default function PatientProfile() {
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 16, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}><User size={18} /> Personal</h3>
           <div className="profile-grid">
-            <Field label="First Name" field="first_name" /><Field label="Last Name" field="last_name" />
-            <Field label="Email" field="email" readonly /><Field label="DOB" field="date_of_birth" readonly />
-            <Field label="Gender" field="gender" readonly /><Field label="Blood Group" field="blood_group" readonly />
-            <Field label="City" field="city" /><Field label="Phone" field="phone_number" />
+            {renderField("First Name", "first_name")}
+            {renderField("Last Name", "last_name")}
+            {renderField("Email", "email", true)}
+            {renderField("DOB", "date_of_birth", true)}
+            {renderField("Gender", "gender", true)}
+            {renderField("Blood Group", "blood_group", true)}
+            {renderField("City", "city")}
+            {renderField("Phone", "phone_number")}
           </div>
         </motion.div>
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 16, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}><Shield size={18} /> Emergency & Insurance</h3>
           <div className="profile-grid">
-            <Field label="Emergency Contact" field="emergency_contact" /><Field label="Emergency Email" field="emergency_email" />
+            {renderField("Emergency Contact", "emergency_contact")}
+            {renderField("Emergency Email", "emergency_email")}
           </div>
           <div style={{ marginTop: 12 }}>
             {editing && <div className="form-group"><label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input type="checkbox" checked={form.is_insurance || false} onChange={e => set('is_insurance', e.target.checked)} /> Has Insurance
             </label></div>}
-            {(form.is_insurance || profile.is_insurance) && <div className="profile-grid"><Field label="Company" field="ins_company_name" /><Field label="Policy No." field="ins_policy_number" /></div>}
+            {(form.is_insurance || profile.is_insurance) && <div className="profile-grid">{renderField("Company", "ins_company_name")}{renderField("Policy No.", "ins_policy_number")}</div>}
           </div>
         </motion.div>
         <motion.div className="glass-card" style={{ gridColumn: '1 / -1' }} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 16, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}><Heart size={18} /> Medical History</h3>
           <div className="profile-grid">
-            <Field label="Known Allergies" field="known_allergies" type="textarea" />
-            <Field label="Chronic Diseases" field="chronic_diseases" type="textarea" />
-            <Field label="Previous Surgeries" field="previous_surgeries" type="textarea" />
-            <Field label="Family History" field="family_medical_history" type="textarea" />
+            {renderField("Known Allergies", "known_allergies", false, "textarea")}
+            {renderField("Chronic Diseases", "chronic_diseases", false, "textarea")}
+            {renderField("Previous Surgeries", "previous_surgeries", false, "textarea")}
+            {renderField("Family History", "family_medical_history", false, "textarea")}
           </div>
         </motion.div>
       </div>

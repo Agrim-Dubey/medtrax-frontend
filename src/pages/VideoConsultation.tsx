@@ -81,7 +81,7 @@ export default function VideoConsultation() {
         console.warn('Full media access failed, trying audio-only', err);
         try {
           stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch (audioErr: any) {
+        } catch {
           setPermissionError(
             'Unable to access camera or microphone. Please check your browser permissions.'
           );
