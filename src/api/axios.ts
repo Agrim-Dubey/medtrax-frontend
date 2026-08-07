@@ -8,6 +8,15 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 });
 
+// Request interceptor: attach bearer token from localStorage if available
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('medtrax_token');
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 let isRefreshing = false;
 let failedQueue: Array<{ resolve: (v: unknown) => void; reject: (e: unknown) => void }> = [];
 
@@ -42,12 +51,16 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
       try {
-        await api.post('/api/auth/refresh-token/');
+        const refreshRes = await api.post('/api/auth/refresh-token/');
+        if (refreshRes.data?.access_token) {
+          localStorage.setItem('medtrax_token', refreshRes.data.access_token);
+        }
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
         localStorage.removeItem('medtrax_user');
+        localStorage.removeItem('medtrax_token');
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
