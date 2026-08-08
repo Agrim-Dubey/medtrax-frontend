@@ -70,6 +70,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     verifySession();
+
+    // Synchronize authentication across multiple browser tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'medtrax_user') {
+        if (e.newValue) {
+          try {
+            setUser(JSON.parse(e.newValue));
+          } catch {
+            setUser(null);
+          }
+        } else {
+          setUser(null);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, [verifySession]);
 
   const login = useCallback((userData: User) => {
