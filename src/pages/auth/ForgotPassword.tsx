@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Mail, KeyRound, ArrowLeft, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThreeBackground from '../../components/ThreeBackground';
+import Input from '../../components/Input';
+import PasswordInput from '../../components/PasswordInput';
 import { authAPI } from '../../api/auth';
-
-const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+import { validation } from '../../utils/validation';
 
 export default function ForgotPassword() {
   const [step, setStep] = useState<'email' | 'otp' | 'reset'>('email');
@@ -14,7 +15,6 @@ export default function ForgotPassword() {
   const [otp, setOtp] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
-  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; otp?: string; password?: string }>({});
   const navigate = useNavigate();
@@ -22,39 +22,45 @@ export default function ForgotPassword() {
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setErrors({ email: 'Email is required' });
+      setErrors({ email: 'Email address is required' });
       return;
     }
-    if (!EMAIL_REGEX.test(email)) {
-      setErrors({ email: 'Enter a valid email address' });
+    if (!validation.isValidEmail(email)) {
+      setErrors({ email: 'Enter a valid email address (e.g. name@domain.com)' });
       return;
     }
+
     setErrors({});
     setLoading(true);
     try {
       await authAPI.forgotPassword({ email: email.trim().toLowerCase() });
-      toast.success('OTP sent to your email!');
+      toast.success('Security code sent to your email!');
       setStep('otp');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to send OTP');
-    } finally { setLoading(false); }
+      toast.error(err.response?.data?.error || 'Failed to dispatch reset code');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length !== 6) {
-      setErrors({ otp: 'Enter 6-digit OTP' });
+      setErrors({ otp: 'Please enter the 6-digit verification code' });
       return;
     }
+
     setErrors({});
     setLoading(true);
     try {
       await authAPI.verifyPasswordResetOTP({ email: email.trim().toLowerCase(), otp });
-      toast.success('OTP verified!');
+      toast.success('Code verified! Set your new password.');
       setStep('reset');
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Invalid OTP');
-    } finally { setLoading(false); }
+      toast.error(err.response?.data?.error || 'Invalid or expired reset code');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleReset = async (e: React.FormEvent) => {
@@ -63,95 +69,272 @@ export default function ForgotPassword() {
       setErrors({ password: 'Password is required' });
       return;
     }
-    if (newPw.length < 8) {
-      setErrors({ password: 'Password must be at least 8 characters' });
+    const strength = validation.evaluatePasswordStrength(newPw);
+    if (strength.score < 2) {
+      setErrors({ password: 'Password is too weak. Please fulfill more requirements.' });
       return;
     }
     if (newPw !== confirmPw) {
       setErrors({ password: 'Passwords do not match' });
       return;
     }
+
     setErrors({});
     setLoading(true);
     try {
-      await authAPI.resetPassword({ email: email.trim().toLowerCase(), new_password: newPw, confirm_password: confirmPw });
-      toast.success('Password reset successfully! Please login.');
+      await authAPI.resetPassword({
+        email: email.trim().toLowerCase(),
+        new_password: newPw,
+        confirm_password: confirmPw,
+      });
+      toast.success('Password updated successfully! Please sign in.');
       navigate('/login');
     } catch (err: any) {
       const errData = err.response?.data?.errors;
-      toast.error(errData?.new_password?.[0] || errData?.non_field_errors?.[0] || err.response?.data?.error || 'Reset failed');
-    } finally { setLoading(false); }
+      toast.error(
+        errData?.new_password?.[0] ||
+        errData?.non_field_errors?.[0] ||
+        err.response?.data?.error ||
+        'Failed to reset password'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const isEmailValid = email.length > 3 && validation.isValidEmail(email);
+
+  const stepsList = [
+    { id: 'email', label: '1. Email' },
+    { id: 'otp', label: '2. Verify Code' },
+    { id: 'reset', label: '3. New Password' },
+  ];
 
   return (
     <div className="auth-container">
       <ThreeBackground />
-      <motion.div className="auth-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-        <motion.div style={{ textAlign: 'center', marginBottom: 8 }} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring' }}>
-          <Heart size={40} color="var(--accent)" strokeWidth={2.5} />
-        </motion.div>
-        <h1 style={{ textAlign: 'center' }}>
-          {step === 'email' ? 'Forgot Password' : step === 'otp' ? 'Verify OTP' : 'New Password'}
+      <motion.div
+        className="auth-card"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <KeyRound size={28} color="var(--accent)" strokeWidth={2.2} />
+          </div>
+        </div>
+
+        {/* Step Progress Pills */}
+        <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 20 }}>
+          {stepsList.map((s, idx) => {
+            const currentIdx = stepsList.findIndex(st => st.id === step);
+            const isDone = idx < currentIdx;
+            const isCurrent = s.id === step;
+
+            return (
+              <span
+                key={s.id}
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '3px 10px',
+                  borderRadius: 100,
+                  background: isCurrent
+                    ? 'rgba(56, 189, 248, 0.2)'
+                    : isDone
+                    ? 'rgba(52, 211, 153, 0.15)'
+                    : 'rgba(255, 255, 255, 0.05)',
+                  color: isCurrent ? 'var(--accent)' : isDone ? 'var(--success)' : 'var(--text-muted)',
+                  fontWeight: isCurrent || isDone ? 700 : 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                {isDone && <Check size={11} />}
+                {s.label}
+              </span>
+            );
+          })}
+        </div>
+
+        <h1 style={{ textAlign: 'center', fontSize: '1.5rem', fontWeight: 800 }}>
+          {step === 'email' ? 'Reset Password' : step === 'otp' ? 'Enter Code' : 'New Credentials'}
         </h1>
-        <p className="auth-subtitle" style={{ textAlign: 'center' }}>
-          {step === 'email' ? 'Enter your email to receive a reset code' : step === 'otp' ? `Enter code sent to ${email}` : 'Set your new password'}
+        <p className="auth-subtitle" style={{ textAlign: 'center', marginBottom: 24 }}>
+          {step === 'email'
+            ? 'Enter your account email to receive a recovery code'
+            : step === 'otp'
+            ? `Enter the 6-digit code sent to ${email}`
+            : 'Set a new strong password for your account'}
         </p>
 
         {step === 'email' && (
           <form onSubmit={handleSendOTP} noValidate>
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: errors.email ? 'var(--danger)' : 'var(--text-muted)' }} />
-                <input className="form-input" type="email" value={email} onChange={e => { setEmail(e.target.value); if (errors.email) setErrors({}); }} placeholder="you@example.com" style={{ paddingLeft: 42, borderColor: errors.email ? 'var(--danger)' : undefined }} />
-              </div>
-              {errors.email && <div className="form-error"><AlertCircle size={13} /> {errors.email}</div>}
-            </div>
-            <motion.button className="btn btn-primary btn-full btn-lg" type="submit" disabled={loading} whileTap={{ scale: 0.98 }}>
-              {loading ? <div className="dna-loader" style={{ height: 22 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="bar" style={{ background: '#0a0e1a', width: 3 }} />)}</div> : 'Send OTP'}
+            <Input
+              label="Account Email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors({});
+              }}
+              error={errors.email}
+              success={isEmailValid}
+              leftIcon={<Mail size={18} />}
+              clearable
+              onClear={() => setEmail('')}
+              required
+            />
+
+            <motion.button
+              className="btn btn-primary btn-full btn-lg"
+              type="submit"
+              disabled={loading}
+              whileTap={{ scale: 0.98 }}
+            >
+              {loading ? (
+                <div className="dna-loader" style={{ height: 20 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="bar" style={{ background: '#0a0e1a', width: 3 }} />
+                  ))}
+                </div>
+              ) : (
+                'Send Recovery Code'
+              )}
             </motion.button>
           </form>
         )}
 
         {step === 'otp' && (
           <form onSubmit={handleVerifyOTP}>
-            <div className="form-group">
-              <label className="form-label">OTP Code</label>
-              <input className="form-input" value={otp} onChange={e => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); if (errors.otp) setErrors({}); }} placeholder="Enter 6-digit code" maxLength={6} style={{ textAlign: 'center', fontSize: '1.25rem', letterSpacing: 8, fontFamily: 'var(--font-mono)', borderColor: errors.otp ? 'var(--danger)' : undefined }} />
-              {errors.otp && <div className="form-error"><AlertCircle size={13} /> {errors.otp}</div>}
+            <div className="form-group" style={{ marginBottom: 20 }}>
+              <label className="form-label">6-Digit Code</label>
+              <input
+                className="form-input"
+                value={otp}
+                onChange={(e) => {
+                  setOtp(e.target.value.replace(/\D/g, '').slice(0, 6));
+                  if (errors.otp) setErrors({});
+                }}
+                placeholder="000000"
+                maxLength={6}
+                style={{
+                  textAlign: 'center',
+                  fontSize: '1.6rem',
+                  letterSpacing: 10,
+                  fontFamily: 'var(--font-mono)',
+                  borderColor: errors.otp ? 'var(--danger)' : undefined,
+                }}
+              />
+              {errors.otp && (
+                <p style={{ color: 'var(--danger)', fontSize: '0.8rem', marginTop: 6, textAlign: 'center' }}>
+                  {errors.otp}
+                </p>
+              )}
             </div>
-            <motion.button className="btn btn-primary btn-full btn-lg" type="submit" disabled={loading} whileTap={{ scale: 0.98 }}>
-              {loading ? <div className="dna-loader" style={{ height: 22 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="bar" style={{ background: '#0a0e1a', width: 3 }} />)}</div> : 'Verify'}
+
+            <motion.button
+              className="btn btn-primary btn-full btn-lg"
+              type="submit"
+              disabled={loading || otp.length !== 6}
+              whileTap={{ scale: 0.98 }}
+            >
+              {loading ? (
+                <div className="dna-loader" style={{ height: 20 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="bar" style={{ background: '#0a0e1a', width: 3 }} />
+                  ))}
+                </div>
+              ) : (
+                'Verify Code'
+              )}
             </motion.button>
+
+            <div style={{ textAlign: 'center', marginTop: 14 }}>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setStep('email')}
+              >
+                ← Back to Email
+              </button>
+            </div>
           </form>
         )}
 
         {step === 'reset' && (
           <form onSubmit={handleReset}>
-            <div className="form-group">
-              <label className="form-label">New Password</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: errors.password ? 'var(--danger)' : 'var(--text-muted)' }} />
-                <input className="form-input" type={showPw ? 'text' : 'password'} value={newPw} onChange={e => { setNewPw(e.target.value); if (errors.password) setErrors({}); }} placeholder="Min 8 characters" style={{ paddingLeft: 42, paddingRight: 42, borderColor: errors.password ? 'var(--danger)' : undefined }} />
-                <button type="button" onClick={() => setShowPw(!showPw)} style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 0 }}>
-                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Confirm Password</label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={18} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: errors.password ? 'var(--danger)' : 'var(--text-muted)' }} />
-                <input className="form-input" type="password" value={confirmPw} onChange={e => { setConfirmPw(e.target.value); if (errors.password) setErrors({}); }} placeholder="Confirm password" style={{ paddingLeft: 42, borderColor: errors.password ? 'var(--danger)' : undefined }} />
-              </div>
-              {errors.password && <div className="form-error"><AlertCircle size={13} /> {errors.password}</div>}
-            </div>
-            <motion.button className="btn btn-primary btn-full btn-lg" type="submit" disabled={loading} whileTap={{ scale: 0.98 }}>
-              {loading ? <div className="dna-loader" style={{ height: 22 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="bar" style={{ background: '#0a0e1a', width: 3 }} />)}</div> : 'Reset Password'}
+            <PasswordInput
+              label="New Password"
+              placeholder="Create strong password"
+              value={newPw}
+              onChange={(e) => {
+                setNewPw(e.target.value);
+                if (errors.password) setErrors({});
+              }}
+              error={errors.password}
+              showStrength
+              required
+            />
+
+            <PasswordInput
+              label="Confirm New Password"
+              placeholder="Re-enter password"
+              value={confirmPw}
+              onChange={(e) => {
+                setConfirmPw(e.target.value);
+                if (errors.password) setErrors({});
+              }}
+              error={errors.password}
+              required
+            />
+
+            <motion.button
+              className="btn btn-primary btn-full btn-lg"
+              type="submit"
+              disabled={loading}
+              whileTap={{ scale: 0.98 }}
+            >
+              {loading ? (
+                <div className="dna-loader" style={{ height: 20 }}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="bar" style={{ background: '#0a0e1a', width: 3 }} />
+                  ))}
+                </div>
+              ) : (
+                'Reset & Secure Account'
+              )}
             </motion.button>
           </form>
         )}
-        <p className="auth-footer"><Link to="/login">← Back to Login</Link></p>
+
+        <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <Link
+            to="/login"
+            style={{
+              fontSize: '0.85rem',
+              color: 'var(--text-muted)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <ArrowLeft size={14} /> Back to Sign In
+          </Link>
+        </div>
       </motion.div>
     </div>
   );
