@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, RotateCcw } from 'lucide-react';
+import { RotateCcw, ArrowLeft, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThreeBackground from '../../components/ThreeBackground';
 import { authAPI } from '../../api/auth';
@@ -9,13 +9,16 @@ import { authAPI } from '../../api/auth';
 export default function VerifyOTP() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(60);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
   const email = sessionStorage.getItem('medtrax_pending_email') || '';
 
   useEffect(() => {
-    if (!email) { navigate('/signup'); return; }
+    if (!email) {
+      navigate('/signup');
+      return;
+    }
     inputRefs.current[0]?.focus();
   }, [email, navigate]);
 
@@ -26,44 +29,74 @@ export default function VerifyOTP() {
   }, [countdown]);
 
   const handleChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
+    const clean = value.replace(/\D/g, '');
+    if (!clean && value !== '') return;
+
     const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
+    newOtp[index] = clean.slice(-1);
     setOtp(newOtp);
-    if (value && index < 5) inputRefs.current[index + 1]?.focus();
+
+    // Auto-advance
+    if (clean && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    // Auto-verify if all 6 filled
+    if (index === 5 && clean) {
+      const fullOtp = newOtp.join('');
+      if (fullOtp.length === 6) {
+        triggerVerify(fullOtp);
+      }
+    }
   };
 
   const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otp[index] && index > 0) {
-      const newOtp = [...otp];
-      newOtp[index - 1] = '';
-      setOtp(newOtp);
+    if (e.key === 'Backspace') {
+      if (!otp[index] && index > 0) {
+        const newOtp = [...otp];
+        newOtp[index - 1] = '';
+        setOtp(newOtp);
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
       inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
     const text = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!text) return;
+
     const newOtp = [...otp];
-    text.split('').forEach((char, i) => { newOtp[i] = char; });
+    text.split('').forEach((char, i) => {
+      newOtp[i] = char;
+    });
     setOtp(newOtp);
-    const focusIndex = Math.min(text.length, 5);
-    inputRefs.current[focusIndex]?.focus();
+
+    if (text.length === 6) {
+      triggerVerify(text);
+    } else {
+      inputRefs.current[Math.min(text.length, 5)]?.focus();
+    }
   };
 
-  const handleVerify = async () => {
-    const otpStr = otp.join('');
-    if (otpStr.length !== 6) return toast.error('Please enter complete OTP');
+  const triggerVerify = async (otpStr: string) => {
+    if (otpStr.length !== 6) {
+      return toast.error('Please enter the complete 6-digit code');
+    }
     setLoading(true);
     try {
       const res = await authAPI.verifySignupOTP({ email, otp: otpStr });
       if (res.data.success) {
-        toast.success('Email verified successfully!');
+        toast.success('Email successfully authenticated!');
         navigate('/complete-profile');
       }
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Verification failed');
+      const msg = err.response?.data?.error || err.response?.data?.detail || 'Invalid or expired OTP code';
+      toast.error(msg);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {
@@ -72,40 +105,141 @@ export default function VerifyOTP() {
   };
 
   const handleResend = async () => {
+    if (countdown > 0) return;
     try {
       await authAPI.resendSignupOTP({ email });
-      toast.success('New OTP sent to your email!');
-      setCountdown(30);
+      toast.success('Fresh verification code sent!');
+      setCountdown(60);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to resend');
+      toast.error(err.response?.data?.error || 'Failed to resend code');
     }
   };
+
+  const isComplete = otp.join('').length === 6;
 
   return (
     <div className="auth-container">
       <ThreeBackground />
-      <motion.div className="auth-card" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}>
-        <motion.div style={{ textAlign: 'center', marginBottom: 8 }} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring' }}>
-          <Heart size={40} color="var(--accent)" strokeWidth={2.5} />
-        </motion.div>
-        <h1 style={{ textAlign: 'center' }}>Verify Email</h1>
-        <p className="auth-subtitle" style={{ textAlign: 'center' }}>Enter the 6-digit code sent to<br /><strong style={{ color: 'var(--accent)' }}>{email}</strong></p>
-        <div className="otp-inputs" onPaste={handlePaste}>
+      <motion.div
+        className="auth-card"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 12 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <ShieldCheck size={28} color="var(--accent)" strokeWidth={2.2} />
+          </div>
+        </div>
+
+        <h1 style={{ textAlign: 'center', fontSize: '1.6rem', fontWeight: 800 }}>Verify Your Email</h1>
+        <p className="auth-subtitle" style={{ textAlign: 'center', marginBottom: 24 }}>
+          Enter the 6-digit security code sent to
+          <br />
+          <strong style={{ color: 'var(--accent)', fontSize: '0.95rem' }}>{email}</strong>
+        </p>
+
+        <div
+          className="otp-inputs"
+          onPaste={handlePaste}
+          style={{
+            display: 'flex',
+            gap: 10,
+            justifyContent: 'center',
+            marginBottom: 24,
+          }}
+        >
           {otp.map((digit, i) => (
-            <input key={i} ref={el => { inputRefs.current[i] = el; }} type="text" inputMode="numeric" maxLength={1} value={digit} onChange={e => handleChange(i, e.target.value)} onKeyDown={e => handleKeyDown(i, e)} />
+            <input
+              key={i}
+              ref={(el) => {
+                inputRefs.current[i] = el;
+              }}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(i, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(i, e)}
+              className="form-input"
+              style={{
+                width: 48,
+                height: 56,
+                textAlign: 'center',
+                fontSize: '1.4rem',
+                fontWeight: 700,
+                fontFamily: 'var(--font-mono)',
+                borderColor: digit ? 'var(--accent)' : undefined,
+                background: digit ? 'rgba(56, 189, 248, 0.08)' : undefined,
+                boxShadow: digit ? '0 0 12px rgba(56, 189, 248, 0.2)' : undefined,
+              }}
+            />
           ))}
         </div>
-        <motion.button className="btn btn-primary btn-full btn-lg" onClick={handleVerify} disabled={loading || otp.join('').length !== 6} whileTap={{ scale: 0.98 }}>
-          {loading ? <div className="dna-loader" style={{ height: 22 }}>{Array.from({ length: 5 }).map((_, i) => <div key={i} className="bar" style={{ background: '#0a0e1a', width: 3 }} />)}</div> : 'Verify Email'}
-        </motion.button>
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
-          {countdown > 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Resend code in {countdown}s</p>
+
+        <motion.button
+          className="btn btn-primary btn-full btn-lg"
+          onClick={() => triggerVerify(otp.join(''))}
+          disabled={loading || !isComplete}
+          whileTap={{ scale: 0.98 }}
+        >
+          {loading ? (
+            <div className="dna-loader" style={{ height: 20 }}>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="bar" style={{ background: '#0a0e1a', width: 3 }} />
+              ))}
+            </div>
           ) : (
-            <button className="btn btn-secondary btn-sm" onClick={handleResend}><RotateCcw size={14} /> Resend OTP</button>
+            'Verify & Continue'
           )}
+        </motion.button>
+
+        <div style={{ textAlign: 'center', marginTop: 20 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Didn't receive the email?{' '}
+            {countdown > 0 ? (
+              <span style={{ color: 'var(--text-secondary)' }}>Resend in {countdown}s</span>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent)',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <RotateCcw size={14} /> Resend Code
+              </button>
+            )}
+          </p>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            style={{ marginTop: 16 }}
+            onClick={() => navigate('/signup')}
+          >
+            <ArrowLeft size={14} /> Use Different Email
+          </button>
         </div>
       </motion.div>
     </div>
