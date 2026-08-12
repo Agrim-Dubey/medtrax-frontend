@@ -1046,3 +1046,9 @@ a:hover { color: #7dd3fc; }
   padding: 32px;
   max-width: 440px;
 }
+
+/* ─── Skeleton Loading Shimmer ─── */
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
