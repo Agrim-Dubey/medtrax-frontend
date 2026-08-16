@@ -34,8 +34,8 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   );
 };
 
-export const CardSkeleton: React.FC = () => (
-  <div className="glass-card" style={{ padding: 20 }}>
+export const CardSkeleton: React.FC<{ lines?: number; className?: string }> = ({ lines = 3, className = '' }) => (
+  <div className={`glass-card ${className}`} style={{ padding: 20 }}>
     <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 16 }}>
       <Skeleton circle height={44} width={44} />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -44,9 +44,9 @@ export const CardSkeleton: React.FC = () => (
       </div>
     </div>
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <Skeleton width="100%" height={12} />
-      <Skeleton width="85%" height={12} />
-      <Skeleton width="60%" height={12} />
+      {Array.from({ length: lines }).map((_, i) => (
+        <Skeleton key={i} width={`${100 - i * 15}%`} height={12} />
+      ))}
     </div>
   </div>
 );

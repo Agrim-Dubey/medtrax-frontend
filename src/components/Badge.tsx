@@ -7,6 +7,7 @@ export type BadgeVariant =
   | 'cancelled'
   | 'doctor'
   | 'patient'
+  | 'primary'
   | 'success'
   | 'warning'
   | 'danger'
@@ -27,6 +28,7 @@ const variantStyles: Record<BadgeVariant, { bg: string; color: string; border: s
   cancelled: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171', border: 'rgba(239, 68, 68, 0.25)', dot: '#f87171' },
   doctor: { bg: 'rgba(129, 140, 248, 0.14)', color: '#818cf8', border: 'rgba(129, 140, 248, 0.3)', dot: '#818cf8' },
   patient: { bg: 'rgba(52, 211, 153, 0.14)', color: '#34d399', border: 'rgba(52, 211, 153, 0.3)', dot: '#34d399' },
+  primary: { bg: 'rgba(14, 165, 233, 0.15)', color: '#38bdf8', border: 'rgba(14, 165, 233, 0.3)', dot: '#38bdf8' },
   success: { bg: 'rgba(52, 211, 153, 0.12)', color: '#34d399', border: 'rgba(52, 211, 153, 0.25)', dot: '#34d399' },
   warning: { bg: 'rgba(251, 191, 36, 0.12)', color: '#fbbf24', border: 'rgba(251, 191, 36, 0.25)', dot: '#fbbf24' },
   danger: { bg: 'rgba(239, 68, 68, 0.12)', color: '#f87171', border: 'rgba(239, 68, 68, 0.25)', dot: '#f87171' },

@@ -4,7 +4,8 @@ import { Calendar, Users, Clock, CheckCircle, Star, TrendingUp, Video, MessageSq
 import { useNavigate } from 'react-router-dom';
 import { doctorDashboardAPI } from '../../api/dashboard';
 import { useAuth } from '../../context/AuthContext';
-import Loader from '../../components/Loader';
+import { CardSkeleton, TableRowSkeleton } from '../../components/Skeleton';
+import EmptyState from '../../components/EmptyState';
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
@@ -31,7 +32,36 @@ export default function DoctorDashboard() {
     load();
   }, []);
 
-  if (loading) return <Loader variant="dna" text="Loading dashboard..." />;
+  if (loading) {
+    return (
+      <div>
+        <div className="page-header" style={{ marginBottom: 24 }}>
+          <div style={{ height: 32, width: 280, background: 'rgba(255,255,255,0.05)', borderRadius: 6, marginBottom: 8 }} />
+          <div style={{ height: 16, width: 180, background: 'rgba(255,255,255,0.03)', borderRadius: 4 }} />
+        </div>
+        <div className="stats-grid" style={{ marginBottom: 24 }}>
+          <CardSkeleton lines={2} />
+          <CardSkeleton lines={2} />
+          <CardSkeleton lines={2} />
+          <CardSkeleton lines={2} />
+        </div>
+        <div className="content-grid">
+          <div className="glass-card" style={{ padding: 20 }}>
+            <table className="data-table">
+              <tbody>
+                <TableRowSkeleton columns={4} />
+                <TableRowSkeleton columns={4} />
+                <TableRowSkeleton columns={4} />
+              </tbody>
+            </table>
+          </div>
+          <div className="glass-card" style={{ padding: 20 }}>
+            <CardSkeleton lines={3} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const statCards = [
     { icon: <Calendar size={24} />, label: "Today's Appts", value: stats?.total_appointments_today ?? 0, color: 'var(--accent)' },
@@ -66,7 +96,11 @@ export default function DoctorDashboard() {
             <Calendar size={20} color="var(--accent)" /> Today's Appointments
           </h2>
           {today.length === 0 ? (
-            <div className="empty-state"><Calendar size={40} /><h3>No appointments today</h3><p>Your schedule is clear</p></div>
+            <EmptyState
+              icon={<Calendar size={28} />}
+              title="No appointments today"
+              description="Your consultation schedule is clear for today."
+            />
           ) : (
             <table className="data-table">
               <thead><tr><th>Patient</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
@@ -112,7 +146,11 @@ export default function DoctorDashboard() {
             <TrendingUp size={20} color="var(--info)" /> Upcoming
           </h2>
           {upcoming.length === 0 ? (
-            <div className="empty-state"><Clock size={40} /><h3>No upcoming</h3></div>
+            <EmptyState
+              icon={<Clock size={28} />}
+              title="No upcoming consultations"
+              description="New scheduled sessions will show up here."
+            />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {upcoming.slice(0, 5).map((apt: any) => (
