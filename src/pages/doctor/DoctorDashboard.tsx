@@ -6,6 +6,8 @@ import { doctorDashboardAPI } from '../../api/dashboard';
 import { useAuth } from '../../context/AuthContext';
 import { CardSkeleton, TableRowSkeleton } from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
+import StatCard from '../../components/StatCard';
+import Badge from '../../components/Badge';
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
@@ -63,16 +65,6 @@ export default function DoctorDashboard() {
     );
   }
 
-  const statCards = [
-    { icon: <Calendar size={24} />, label: "Today's Appts", value: stats?.total_appointments_today ?? 0, color: 'var(--accent)' },
-    { icon: <Clock size={24} />, label: 'Pending', value: stats?.pending_appointments ?? 0, color: 'var(--warning)' },
-    { icon: <Users size={24} />, label: 'Upcoming', value: stats?.upcoming_appointments ?? 0, color: 'var(--info)' },
-    { icon: <CheckCircle size={24} />, label: 'Completed', value: stats?.completed_appointments ?? 0, color: 'var(--success)' },
-  ];
-
-  const container = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
-  const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
-
   return (
     <div>
       <div className="page-header">
@@ -80,15 +72,33 @@ export default function DoctorDashboard() {
         <p>Here's your overview for today</p>
       </div>
 
-      <motion.div className="stats-grid" variants={container} initial="hidden" animate="show">
-        {statCards.map((s, i) => (
-          <motion.div key={i} className="stat-card" variants={item}>
-            <div className="stat-icon" style={{ background: `${s.color}15`, color: s.color }}>{s.icon}</div>
-            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-            <div className="stat-label">{s.label}</div>
-          </motion.div>
-        ))}
-      </motion.div>
+      <div className="stats-grid" style={{ marginBottom: 24 }}>
+        <StatCard
+          label="Today's Appts"
+          value={stats?.total_appointments_today ?? 0}
+          icon={<Calendar size={22} />}
+          color="var(--accent)"
+          trend={{ value: 'Daily sync', positive: true }}
+        />
+        <StatCard
+          label="Pending Requests"
+          value={stats?.pending_appointments ?? 0}
+          icon={<Clock size={22} />}
+          color="var(--warning)"
+        />
+        <StatCard
+          label="Upcoming"
+          value={stats?.upcoming_appointments ?? 0}
+          icon={<Users size={22} />}
+          color="var(--info)"
+        />
+        <StatCard
+          label="Completed"
+          value={stats?.completed_appointments ?? 0}
+          icon={<CheckCircle size={22} />}
+          color="var(--success)"
+        />
+      </div>
 
       <div className="content-grid">
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
@@ -109,7 +119,7 @@ export default function DoctorDashboard() {
                   <tr key={apt.id}>
                     <td><strong>{apt.patient_name}</strong></td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{apt.appointment_time_formatted || apt.appointment_time}</td>
-                    <td><span className={`badge badge-${apt.status}`}>{apt.status}</span></td>
+                    <td><Badge variant={apt.status} pulse={apt.status === 'confirmed'}>{apt.status}</Badge></td>
                     <td>
                       {apt.status === 'confirmed' ? (
                         <div style={{ display: 'flex', gap: 6 }}>
