@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Users, Clock, CheckCircle, Star, TrendingUp, Video, MessageSquare } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, Star, TrendingUp, Video, MessageSquare, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { doctorDashboardAPI } from '../../api/dashboard';
 import { useAuth } from '../../context/AuthContext';
@@ -8,6 +8,7 @@ import { CardSkeleton, TableRowSkeleton } from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
 import StatCard from '../../components/StatCard';
 import Badge from '../../components/Badge';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
@@ -17,6 +18,17 @@ export default function DoctorDashboard() {
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'confirmed' | 'pending' | 'completed'>('all');
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  const filteredToday = useMemo(() => {
+    return today.filter((apt) => {
+      const matchesSearch = !debouncedSearch || apt.patient_name?.toLowerCase().includes(debouncedSearch.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || apt.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [today, debouncedSearch, statusFilter]);
 
   useEffect(() => {
     const load = async () => {
@@ -102,20 +114,68 @@ export default function DoctorDashboard() {
 
       <div className="content-grid">
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Calendar size={20} color="var(--accent)" /> Today's Appointments
-          </h2>
-          {today.length === 0 ? (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={20} color="var(--accent)" /> Today's Appointments ({filteredToday.length})
+            </h2>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ position: 'relative', minWidth: 160 }}>
+                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Filter patient..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    padding: '6px 10px 6px 30px',
+                    fontSize: '0.78rem',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                    width: 150,
+                  }}
+                />
+              </div>
+
+              {(['all', 'confirmed', 'pending', 'completed'] as const).map((st) => (
+                <button
+                  key={st}
+                  type="button"
+                  onClick={() => setStatusFilter(st)}
+                  style={{
+                    padding: '4px 10px',
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    textTransform: 'capitalize',
+                    borderRadius: 9999,
+                    border: '1px solid',
+                    borderColor: statusFilter === st ? 'var(--accent)' : 'transparent',
+                    background: statusFilter === st ? 'rgba(14, 165, 233, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                    color: statusFilter === st ? 'var(--accent)' : 'var(--text-secondary)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  {st}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {filteredToday.length === 0 ? (
             <EmptyState
               icon={<Calendar size={28} />}
-              title="No appointments today"
-              description="Your consultation schedule is clear for today."
+              title="No appointments found"
+              description={searchQuery || statusFilter !== 'all' ? "Try adjusting your search query or status filter." : "Your consultation schedule is clear for today."}
             />
           ) : (
             <table className="data-table">
               <thead><tr><th>Patient</th><th>Time</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
-                {today.map((apt: any) => (
+                {filteredToday.map((apt: any) => (
                   <tr key={apt.id}>
                     <td><strong>{apt.patient_name}</strong></td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem' }}>{apt.appointment_time_formatted || apt.appointment_time}</td>
