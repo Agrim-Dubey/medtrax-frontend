@@ -4,7 +4,10 @@ import { Calendar, Clock, CheckCircle, AlertCircle, Video, MessageSquare } from 
 import { useNavigate } from 'react-router-dom';
 import { patientDashboardAPI } from '../../api/dashboard';
 import { useAuth } from '../../context/AuthContext';
-import Loader from '../../components/Loader';
+import { CardSkeleton } from '../../components/Skeleton';
+import EmptyState from '../../components/EmptyState';
+import StatCard from '../../components/StatCard';
+import Badge from '../../components/Badge';
 
 export default function PatientDashboard() {
   const { user } = useAuth();
@@ -25,39 +28,72 @@ export default function PatientDashboard() {
     load();
   }, []);
 
-  if (loading) return <Loader variant="pulse" text="Loading your health data..." />;
-
-  const container = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
-  const item = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
-
-  const statCards = [
-    { icon: <Calendar size={24} />, label: 'Total Appointments', value: stats?.total_appointments ?? 0, color: 'var(--accent)' },
-    { icon: <Clock size={24} />, label: 'Upcoming', value: stats?.upcoming ?? 0, color: 'var(--info)' },
-    { icon: <CheckCircle size={24} />, label: 'Completed', value: stats?.completed ?? 0, color: 'var(--success)' },
-    { icon: <AlertCircle size={24} />, label: 'Pending', value: stats?.pending ?? 0, color: 'var(--warning)' },
-  ];
+  if (loading) {
+    return (
+      <div>
+        <div className="page-header" style={{ marginBottom: 24 }}>
+          <div style={{ height: 32, width: 260, background: 'rgba(255,255,255,0.05)', borderRadius: 6, marginBottom: 8 }} />
+          <div style={{ height: 16, width: 170, background: 'rgba(255,255,255,0.03)', borderRadius: 4 }} />
+        </div>
+        <div className="stats-grid" style={{ marginBottom: 24 }}>
+          <CardSkeleton lines={2} />
+          <CardSkeleton lines={2} />
+          <CardSkeleton lines={2} />
+          <CardSkeleton lines={2} />
+        </div>
+        <div className="content-grid">
+          <CardSkeleton lines={4} />
+          <CardSkeleton lines={4} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <div className="page-header">
         <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>Welcome, {user?.username || 'Patient'} 👋</motion.h1>
-        <p>Your health overview</p>
+        <p>Your comprehensive health overview</p>
       </div>
 
-      <motion.div className="stats-grid" variants={container} initial="hidden" animate="show">
-        {statCards.map((s, i) => (
-          <motion.div key={i} className="stat-card" variants={item}>
-            <div className="stat-icon" style={{ background: `${s.color}15`, color: s.color }}>{s.icon}</div>
-            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-            <div className="stat-label">{s.label}</div>
-          </motion.div>
-        ))}
-      </motion.div>
+      <div className="stats-grid" style={{ marginBottom: 24 }}>
+        <StatCard
+          label="Total Consultations"
+          value={stats?.total_appointments ?? 0}
+          icon={<Calendar size={22} />}
+          color="var(--accent)"
+        />
+        <StatCard
+          label="Upcoming"
+          value={stats?.upcoming ?? 0}
+          icon={<Clock size={22} />}
+          color="var(--info)"
+          trend={{ value: 'Scheduled', positive: true }}
+        />
+        <StatCard
+          label="Completed"
+          value={stats?.completed ?? 0}
+          icon={<CheckCircle size={22} />}
+          color="var(--success)"
+        />
+        <StatCard
+          label="Pending Confirmation"
+          value={stats?.pending ?? 0}
+          icon={<AlertCircle size={22} />}
+          color="var(--warning)"
+        />
+      </div>
 
       <div className="content-grid">
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Clock size={20} color="var(--accent)" /> Upcoming</h2>
-          {upcoming.length === 0 ? <div className="empty-state"><Calendar size={40} /><h3>No upcoming appointments</h3></div> :
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Clock size={20} color="var(--accent)" /> Upcoming Appointments</h2>
+          {upcoming.length === 0 ? (
+            <EmptyState
+              icon={<Calendar size={28} />}
+              title="No upcoming consultations"
+              description="Book an appointment with a doctor anytime."
+            />
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {upcoming.map((a: any) => (
                 <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', flexWrap: 'wrap', gap: 8 }}>
@@ -78,20 +114,26 @@ export default function PatientDashboard() {
                 </div>
               ))}
             </div>
-          }
+          )}
         </motion.div>
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle size={20} color="var(--success)" /> Recent</h2>
-          {recent.length === 0 ? <div className="empty-state"><CheckCircle size={40} /><h3>No past appointments</h3></div> :
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle size={20} color="var(--success)" /> Recent Visits</h2>
+          {recent.length === 0 ? (
+            <EmptyState
+              icon={<CheckCircle size={28} />}
+              title="No visit history yet"
+              description="Your completed consultations will be archived here."
+            />
+          ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {recent.map((a: any) => (
                 <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)' }}>
                   <div><strong style={{ fontSize: '0.88rem' }}>{a.doctor_name}</strong><p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{a.specialization || 'General'}</p></div>
-                  <div style={{ textAlign: 'right' }}><p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>{a.appointment_date || a.date}</p><span className={`badge badge-${(a.status || '').toLowerCase()}`}>{a.status}</span></div>
+                  <div style={{ textAlign: 'right' }}><p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>{a.appointment_date || a.date}</p><Badge variant={a.status}>{a.status}</Badge></div>
                 </div>
               ))}
             </div>
-          }
+          )}
         </motion.div>
       </div>
     </div>
