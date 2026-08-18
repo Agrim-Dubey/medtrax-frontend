@@ -8,6 +8,8 @@ import { CardSkeleton } from '../../components/Skeleton';
 import EmptyState from '../../components/EmptyState';
 import StatCard from '../../components/StatCard';
 import Badge from '../../components/Badge';
+import VitalsIndicator from '../../components/VitalsIndicator';
+import { Activity } from 'lucide-react';
 
 export default function PatientDashboard() {
   const { user } = useAuth();
@@ -136,6 +138,48 @@ export default function PatientDashboard() {
           )}
         </motion.div>
       </div>
+
+      <motion.div
+        className="glass-card"
+        style={{ marginTop: 24 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Activity size={20} color="var(--accent)" /> Real-Time Health Vitals
+          </h2>
+          <Badge variant="success" pulse size="sm">Live Connected</Badge>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          <VitalsIndicator
+            type="heart_rate"
+            value="72"
+            unit="bpm"
+            recordedAt="10m ago"
+          />
+          <VitalsIndicator
+            type="blood_pressure"
+            value="118/78"
+            unit="mmHg"
+            recordedAt="1h ago"
+          />
+          <VitalsIndicator
+            type="spo2"
+            value="98"
+            unit="%"
+            recordedAt="1h ago"
+          />
+          <VitalsIndicator
+            type="temperature"
+            value="98.4"
+            unit="°F"
+            recordedAt="Today, 8:00 AM"
+          />
+        </div>
+      </motion.div>
     </div>
   );
 }
