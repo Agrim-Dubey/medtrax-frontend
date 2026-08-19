@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Check, X, Clock, Video, MessageSquare } from 'lucide-react';
+import { Calendar, Check, X, Clock, Video, MessageSquare, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { appointmentsAPI } from '../../api/appointments';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export default function DoctorAppointments() {
   const navigate = useNavigate();
@@ -11,6 +12,24 @@ export default function DoctorAppointments() {
   const [requests, setRequests] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
+
+  const filteredRequests = useMemo(() => {
+    if (!debouncedSearch) return requests;
+    const q = debouncedSearch.toLowerCase();
+    return requests.filter(
+      (r) => r.patient_name?.toLowerCase().includes(q) || r.reason?.toLowerCase().includes(q)
+    );
+  }, [requests, debouncedSearch]);
+
+  const filteredAppointments = useMemo(() => {
+    if (!debouncedSearch) return appointments;
+    const q = debouncedSearch.toLowerCase();
+    return appointments.filter(
+      (a) => a.patient_name?.toLowerCase().includes(q) || a.reason?.toLowerCase().includes(q)
+    );
+  }, [appointments, debouncedSearch]);
 
   const load = async () => {
     setLoading(true);
@@ -35,16 +54,40 @@ export default function DoctorAppointments() {
 
   return (
     <div>
-      <div className="page-header"><h1>Appointments</h1><p>Manage your patient appointments</p></div>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <h1>Appointments</h1>
+          <p>Manage your patient appointments</p>
+        </div>
+        <div style={{ position: 'relative', width: 280 }}>
+          <Search size={16} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+          <input
+            type="text"
+            placeholder="Search patient or reason..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px 12px 8px 36px',
+              borderRadius: 'var(--radius-md)',
+              background: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid var(--border-primary)',
+              color: 'var(--text-primary)',
+              fontSize: '0.85rem',
+              outline: 'none',
+            }}
+          />
+        </div>
+      </div>
       <div className="tabs">
         <button className={`tab ${tab === 'requests' ? 'active' : ''}`} onClick={() => setTab('requests')}>Pending ({requests.length})</button>
         <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>All ({appointments.length})</button>
       </div>
 
       {tab === 'requests' && (
-        requests.length === 0 ? <div className="empty-state"><Clock size={48} /><h3>No pending requests</h3></div> :
+        filteredRequests.length === 0 ? <div className="empty-state"><Clock size={48} /><h3>No pending requests</h3></div> :
         <div style={{ display: 'grid', gap: 12 }}>
-          {requests.map((r: any, i: number) => (
+          {filteredRequests.map((r: any, i: number) => (
             <motion.div key={r.id} className="glass-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
               style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
               <div>
@@ -62,12 +105,12 @@ export default function DoctorAppointments() {
       )}
 
       {tab === 'all' && (
-        appointments.length === 0 ? <div className="empty-state"><Calendar size={48} /><h3>No appointments yet</h3></div> :
+        filteredAppointments.length === 0 ? <div className="empty-state"><Calendar size={48} /><h3>No appointments yet</h3></div> :
         <motion.div className="glass-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <table className="data-table">
             <thead><tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody>
-              {appointments.map((a: any) => (
+              {filteredAppointments.map((a: any) => (
                 <tr key={a.id}>
                   <td><strong>{a.patient_name}</strong></td>
                   <td>{a.appointment_date}</td>
