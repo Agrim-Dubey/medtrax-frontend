@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { appointmentsAPI } from '../../api/appointments';
 import { useDebounce } from '../../hooks/useDebounce';
+import Tabs from '../../components/Tabs';
+import Badge from '../../components/Badge';
 
 export default function DoctorAppointments() {
   const navigate = useNavigate();
@@ -79,10 +81,14 @@ export default function DoctorAppointments() {
           />
         </div>
       </div>
-      <div className="tabs">
-        <button className={`tab ${tab === 'requests' ? 'active' : ''}`} onClick={() => setTab('requests')}>Pending ({requests.length})</button>
-        <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>All ({appointments.length})</button>
-      </div>
+      <Tabs<'requests' | 'all'>
+        tabs={[
+          { id: 'requests', label: 'Pending Requests', icon: <Clock size={15} />, badge: requests.length },
+          { id: 'all', label: 'All Consultations', icon: <Calendar size={15} />, badge: appointments.length },
+        ]}
+        activeTab={tab}
+        onChange={(newTab) => setTab(newTab)}
+      />
 
       {tab === 'requests' && (
         filteredRequests.length === 0 ? <div className="empty-state"><Clock size={48} /><h3>No pending requests</h3></div> :
@@ -116,7 +122,7 @@ export default function DoctorAppointments() {
                   <td>{a.appointment_date}</td>
                   <td>{a.appointment_time_formatted || a.appointment_time}</td>
                   <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.reason || '—'}</td>
-                  <td><span className={`badge badge-${a.status}`}>{a.status}</span></td>
+                  <td><Badge variant={a.status} pulse={a.status === 'confirmed'}>{a.status}</Badge></td>
                   <td>
                     {a.status === 'confirmed' ? (
                       <div style={{ display: 'flex', gap: 6 }}>
