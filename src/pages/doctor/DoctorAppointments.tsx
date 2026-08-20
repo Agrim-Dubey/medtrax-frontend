@@ -7,6 +7,7 @@ import { appointmentsAPI } from '../../api/appointments';
 import { useDebounce } from '../../hooks/useDebounce';
 import Tabs from '../../components/Tabs';
 import Badge from '../../components/Badge';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function DoctorAppointments() {
   const navigate = useNavigate();
@@ -15,6 +16,8 @@ export default function DoctorAppointments() {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [rejectTargetId, setRejectTargetId] = useState<number | null>(null);
+  const [rejecting, setRejecting] = useState(false);
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   const filteredRequests = useMemo(() => {
@@ -48,8 +51,20 @@ export default function DoctorAppointments() {
   const handleAccept = async (id: number) => {
     try { await appointmentsAPI.acceptAppointment(id); toast.success('Accepted!'); load(); } catch { toast.error('Failed'); }
   };
-  const handleReject = async (id: number) => {
-    try { await appointmentsAPI.rejectAppointment(id); toast.success('Rejected'); load(); } catch { toast.error('Failed'); }
+
+  const confirmReject = async () => {
+    if (!rejectTargetId) return;
+    setRejecting(true);
+    try {
+      await appointmentsAPI.rejectAppointment(rejectTargetId);
+      toast.success('Appointment request declined');
+      setRejectTargetId(null);
+      load();
+    } catch {
+      toast.error('Failed to reject appointment');
+    } finally {
+      setRejecting(false);
+    }
   };
 
   if (loading) return <div className="loading-container"><div className="spinner" /></div>;
@@ -103,7 +118,7 @@ export default function DoctorAppointments() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button className="btn btn-success btn-sm" onClick={() => handleAccept(r.id)}><Check size={16} /> Accept</button>
-                <button className="btn btn-danger btn-sm" onClick={() => handleReject(r.id)}><X size={16} /> Reject</button>
+                <button className="btn btn-danger btn-sm" onClick={() => setRejectTargetId(r.id)}><X size={16} /> Reject</button>
               </div>
             </motion.div>
           ))}
@@ -153,6 +168,17 @@ export default function DoctorAppointments() {
           </table>
         </motion.div>
       )}
+
+      <ConfirmDialog
+        isOpen={rejectTargetId !== null}
+        onClose={() => setRejectTargetId(null)}
+        onConfirm={confirmReject}
+        title="Decline Appointment Request"
+        message="Are you sure you want to decline this patient's consultation request? The patient will be notified immediately."
+        confirmText="Decline Request"
+        variant="danger"
+        loading={rejecting}
+      />
     </div>
   );
 }
