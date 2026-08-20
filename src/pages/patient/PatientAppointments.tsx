@@ -145,22 +145,57 @@ export default function PatientAppointments() {
             </div>
 
             {queueInfo && (
-              <div style={{ marginTop: 12, padding: '12px 16px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: 'var(--radius-md)', border: '1px solid rgba(56, 189, 248, 0.25)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div className="pulse-dot" style={{ width: 8, height: 8 }} />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={{
+                  marginTop: 14,
+                  padding: '14px 18px',
+                  background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.12) 0%, rgba(30, 41, 59, 0.6) 100%)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid rgba(56, 189, 248, 0.35)',
+                  boxShadow: '0 8px 24px rgba(14, 165, 233, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 14,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ position: 'relative', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <motion.div
+                      animate={{ scale: [1, 2.2, 1], opacity: [0.8, 0, 0.8] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        borderRadius: '50%',
+                        background: 'var(--accent)',
+                      }}
+                    />
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 10px var(--accent)' }} />
+                  </div>
                   <div>
-                    <strong style={{ fontSize: '0.85rem', color: 'var(--accent)' }}>Live Waiting Queue</strong>
-                    <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                      {queueInfo.current_queue_count} patients waiting • Estimated wait: ~{queueInfo.estimated_wait_time ?? 0} mins
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <strong style={{ fontSize: '0.9rem', color: '#f0f9ff' }}>Live Clinic Queue</strong>
+                      <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 9999, background: 'rgba(56, 189, 248, 0.2)', color: 'var(--accent)', fontWeight: 600 }}>
+                        Real-time
+                      </span>
+                    </div>
+                    <p style={{ margin: '3px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      <strong>{queueInfo.current_queue_count ?? 0}</strong> patients ahead in queue • Est. wait ~<strong>{queueInfo.estimated_wait_time ?? 0} mins</strong>
                     </p>
                   </div>
                 </div>
+
                 {queueInfo.current_session && (
-                  <span style={{ fontSize: '0.75rem', background: 'var(--bg-input)', padding: '4px 8px', borderRadius: 4, color: 'var(--text-secondary)' }}>
-                    Session: {queueInfo.current_session}
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.75rem', background: 'rgba(15, 23, 42, 0.7)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Now Serving:</span>
+                    <strong style={{ color: 'var(--accent)' }}>Session #{queueInfo.current_session}</strong>
+                  </div>
                 )}
-              </div>
+              </motion.div>
             )}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
