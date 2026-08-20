@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Plus, Video, MessageSquare } from 'lucide-react';
+import { Calendar, Plus, Video, MessageSquare, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { appointmentsAPI } from '../../api/appointments';
 import { getWebSocketUrl } from '../../utils/websocket';
+import { useDebounce } from '../../hooks/useDebounce';
 
 export default function PatientAppointments() {
   const navigate = useNavigate();
@@ -19,7 +20,20 @@ export default function PatientAppointments() {
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
   const [queueInfo, setQueueInfo] = useState<any>(null);
+  const [doctorSearch, setDoctorSearch] = useState('');
+  const debouncedDoctorSearch = useDebounce(doctorSearch, 300);
   const queueWsRef = useRef<WebSocket | null>(null);
+
+  const filteredDoctors = useMemo(() => {
+    if (!debouncedDoctorSearch) return doctors;
+    const q = debouncedDoctorSearch.toLowerCase();
+    return doctors.filter((d) => {
+      const name = (d.full_name || `${d.first_name || ''} ${d.last_name || ''}`).toLowerCase();
+      const spec = (d.specialization || '').toLowerCase();
+      const city = (d.city || '').toLowerCase();
+      return name.includes(q) || spec.includes(q) || city.includes(q);
+    });
+  }, [doctors, debouncedDoctorSearch]);
 
   useEffect(() => {
     appointmentsAPI.getPatientAppointments().then(r => setAppointments(r.data)).catch(() => {}).finally(() => setLoading(false));
@@ -91,9 +105,30 @@ export default function PatientAppointments() {
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 20 }}>Book an Appointment</h2>
           <div className="form-group">
-            <label className="form-label">Select Doctor</label>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <label className="form-label" style={{ margin: 0 }}>Select Doctor</label>
+              <div style={{ position: 'relative', width: 220 }}>
+                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Filter by name, spec..."
+                  value={doctorSearch}
+                  onChange={(e) => setDoctorSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px 6px 30px',
+                    fontSize: '0.78rem',
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
             <div style={{ display: 'grid', gap: 8, maxHeight: 250, overflowY: 'auto' }}>
-              {doctors.map((d: any) => (
+              {filteredDoctors.map((d: any) => (
                 <div key={d.id} onClick={() => { setSelectedDoctor(d); setSlots([]); setSelectedSlot(''); if (date) fetchSlots(d.id, date); }}
                   style={{ padding: '12px 16px', background: selectedDoctor?.id === d.id ? 'var(--accent-soft)' : 'var(--bg-input)', border: `1px solid ${selectedDoctor?.id === d.id ? 'var(--accent)' : 'var(--border-primary)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', transition: 'var(--transition)' }}>
                   <strong>{d.full_name || `Dr. ${d.first_name || ''} ${d.last_name || ''}`}</strong>
@@ -102,7 +137,11 @@ export default function PatientAppointments() {
                   </p>
                 </div>
               ))}
-              {doctors.length === 0 && <p style={{ color: 'var(--text-muted)' }}>No doctors available</p>}
+              {filteredDoctors.length === 0 && (
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', padding: '12px 0' }}>
+                  {doctorSearch ? 'No matching doctors found' : 'No doctors available'}
+                </p>
+              )}
             </div>
 
             {queueInfo && (
