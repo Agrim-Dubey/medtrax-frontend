@@ -14,6 +14,7 @@ import {
 import toast from 'react-hot-toast';
 import { prescriptionsAPI } from '../api/prescriptions';
 import { useAuth } from '../context/AuthContext';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface MedicationItem {
   medicine_name: string;
@@ -48,6 +49,7 @@ export default function Prescriptions() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<any>(null);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
 
   // Doctor: Create Prescription Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -223,11 +225,15 @@ export default function Prescriptions() {
   };
 
   const filteredPrescriptions = prescriptions.filter(p => {
-    const q = search.toLowerCase();
+    if (!debouncedSearch) return true;
+    const q = debouncedSearch.toLowerCase();
     const name = (isDoctor ? p.patient_name : p.doctor_name) || '';
     const diag = p.diagnosis || '';
     const chief = p.chief_complaint || '';
-    return name.toLowerCase().includes(q) || diag.toLowerCase().includes(q) || chief.toLowerCase().includes(q);
+    const matchesMedication = p.medications?.some(
+      (m: any) => m.medicine_name?.toLowerCase().includes(q) || m.instructions?.toLowerCase().includes(q)
+    );
+    return name.toLowerCase().includes(q) || diag.toLowerCase().includes(q) || chief.toLowerCase().includes(q) || matchesMedication;
   });
 
   if (loading) {
