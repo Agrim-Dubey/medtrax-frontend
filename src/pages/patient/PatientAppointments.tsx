@@ -6,6 +6,10 @@ import toast from 'react-hot-toast';
 import { appointmentsAPI } from '../../api/appointments';
 import { getWebSocketUrl } from '../../utils/websocket';
 import { useDebounce } from '../../hooks/useDebounce';
+import Badge from '../../components/Badge';
+import EmptyState from '../../components/EmptyState';
+import { TableRowSkeleton } from '../../components/Skeleton';
+import Tabs from '../../components/Tabs';
 
 export default function PatientAppointments() {
   const navigate = useNavigate();
@@ -90,16 +94,41 @@ export default function PatientAppointments() {
     setBooking(false);
   };
 
-  if (loading) return <div className="loading-container"><div className="spinner" /></div>;
+  if (loading) {
+    return (
+      <div>
+        <div className="page-header" style={{ marginBottom: 24 }}>
+          <div style={{ height: 32, width: 220, background: 'rgba(255,255,255,0.05)', borderRadius: 6, marginBottom: 8 }} />
+          <div style={{ height: 16, width: 160, background: 'rgba(255,255,255,0.03)', borderRadius: 4 }} />
+        </div>
+        <div className="glass-card" style={{ padding: 20 }}>
+          <table className="data-table">
+            <tbody>
+              <TableRowSkeleton columns={6} />
+              <TableRowSkeleton columns={6} />
+              <TableRowSkeleton columns={6} />
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div><h1>Appointments</h1><p>Book and manage appointments</p></div>
-        <button className="btn btn-primary btn-sm" onClick={() => setTab(tab === 'book' ? 'list' : 'book')}>
-          {tab === 'book' ? <><Calendar size={16} /> My Appointments</> : <><Plus size={16} /> Book New</>}
-        </button>
+      <div className="page-header">
+        <h1>Consultation Appointments</h1>
+        <p>Book new visits and track pending consultations</p>
       </div>
+
+      <Tabs<'list' | 'book'>
+        tabs={[
+          { id: 'list', label: 'My Appointments', icon: <Calendar size={15} />, badge: appointments.length },
+          { id: 'book', label: 'Book Consultation', icon: <Plus size={15} /> },
+        ]}
+        activeTab={tab}
+        onChange={(t) => setTab(t)}
+      />
 
       {tab === 'book' ? (
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -224,7 +253,15 @@ export default function PatientAppointments() {
           </button>
         </motion.div>
       ) : (
-        appointments.length === 0 ? <div className="empty-state"><Calendar size={48} /><h3>No appointments</h3><p>Book your first appointment!</p></div> :
+        appointments.length === 0 ? (
+          <EmptyState
+            icon={<Calendar size={32} />}
+            title="No appointments scheduled"
+            description="You don't have any appointments on record. Select a doctor to request a consultation."
+            actionLabel="Book First Appointment"
+            onAction={() => setTab('book')}
+          />
+        ) : (
         <motion.div className="glass-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
           <table className="data-table">
             <thead><tr><th>Doctor</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
@@ -235,7 +272,7 @@ export default function PatientAppointments() {
                   <td>{a.appointment_date}</td>
                   <td>{a.appointment_time_formatted || a.appointment_time}</td>
                   <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.reason || '—'}</td>
-                  <td><span className={`badge badge-${a.status}`}>{a.status}</span></td>
+                  <td><Badge variant={a.status} pulse={a.status === 'confirmed'}>{a.status}</Badge></td>
                   <td>
                     {a.status === 'confirmed' ? (
                       <div style={{ display: 'flex', gap: 6 }}>
@@ -265,6 +302,7 @@ export default function PatientAppointments() {
             </tbody>
           </table>
         </motion.div>
+        )
       )}
     </div>
   );
