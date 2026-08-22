@@ -15,6 +15,7 @@ import toast from 'react-hot-toast';
 import { prescriptionsAPI } from '../api/prescriptions';
 import { useAuth } from '../context/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
+import { validation } from '../utils/validation';
 
 interface MedicationItem {
   medicine_name: string;
@@ -164,6 +165,26 @@ export default function Prescriptions() {
     const validMeds = medications.filter(m => m.medicine_name.trim() && m.dosage.trim());
     if (validMeds.length === 0) {
       return toast.error('At least one medication with name and dosage is required');
+    }
+
+    if (bloodPressure.trim()) {
+      const bpCheck = validation.isValidBloodPressure(bloodPressure);
+      if (!bpCheck.valid) return toast.error(`Blood pressure: ${bpCheck.message}`);
+    }
+
+    if (temperature.trim()) {
+      const tempCheck = validation.isValidTemperature(temperature);
+      if (!tempCheck.valid) return toast.error(`Temperature: ${tempCheck.message}`);
+    }
+
+    if (pulseRate.trim()) {
+      const pulseCheck = validation.isValidPulseRate(pulseRate);
+      if (!pulseCheck.valid) return toast.error(`Pulse: ${pulseCheck.message}`);
+    }
+
+    if (weight.trim()) {
+      const weightCheck = validation.isValidWeight(weight);
+      if (!weightCheck.valid) return toast.error(`Weight: ${weightCheck.message}`);
     }
 
     const payload: any = {
@@ -618,7 +639,15 @@ export default function Prescriptions() {
                         placeholder="BP (120/80)"
                         value={bloodPressure}
                         onChange={e => setBloodPressure(e.target.value)}
+                        style={{
+                          borderColor: bloodPressure && !validation.isValidBloodPressure(bloodPressure).valid ? 'var(--danger)' : undefined,
+                        }}
                       />
+                      {bloodPressure && !validation.isValidBloodPressure(bloodPressure).valid && (
+                        <p style={{ margin: '4px 0 0', fontSize: '0.68rem', color: 'var(--danger)' }}>
+                          {validation.isValidBloodPressure(bloodPressure).message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <input
@@ -628,7 +657,15 @@ export default function Prescriptions() {
                         step="0.1"
                         value={temperature}
                         onChange={e => setTemperature(e.target.value)}
+                        style={{
+                          borderColor: temperature && !validation.isValidTemperature(temperature).valid ? 'var(--danger)' : undefined,
+                        }}
                       />
+                      {temperature && !validation.isValidTemperature(temperature).valid && (
+                        <p style={{ margin: '4px 0 0', fontSize: '0.68rem', color: 'var(--danger)' }}>
+                          {validation.isValidTemperature(temperature).message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <input
@@ -637,7 +674,15 @@ export default function Prescriptions() {
                         type="number"
                         value={pulseRate}
                         onChange={e => setPulseRate(e.target.value)}
+                        style={{
+                          borderColor: pulseRate && !validation.isValidPulseRate(pulseRate).valid ? 'var(--danger)' : undefined,
+                        }}
                       />
+                      {pulseRate && !validation.isValidPulseRate(pulseRate).valid && (
+                        <p style={{ margin: '4px 0 0', fontSize: '0.68rem', color: 'var(--danger)' }}>
+                          {validation.isValidPulseRate(pulseRate).message}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <input
@@ -647,7 +692,15 @@ export default function Prescriptions() {
                         step="0.1"
                         value={weight}
                         onChange={e => setWeight(e.target.value)}
+                        style={{
+                          borderColor: weight && !validation.isValidWeight(weight).valid ? 'var(--danger)' : undefined,
+                        }}
                       />
+                      {weight && !validation.isValidWeight(weight).valid && (
+                        <p style={{ margin: '4px 0 0', fontSize: '0.68rem', color: 'var(--danger)' }}>
+                          {validation.isValidWeight(weight).message}
+                        </p>
+                      )}
                     </div>
                   </div>
 
