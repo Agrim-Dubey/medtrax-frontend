@@ -16,6 +16,7 @@ import { prescriptionsAPI } from '../api/prescriptions';
 import { useAuth } from '../context/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { validation } from '../utils/validation';
+import MedicalScheduleTimeline from '../components/MedicalScheduleTimeline';
 
 interface MedicationItem {
   medicine_name: string;
@@ -444,6 +445,27 @@ export default function Prescriptions() {
             </div>
           </div>
         </div>
+
+        {/* Visual Dose Schedule Timeline */}
+        {selected.medications?.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)' }}>
+              Interactive Daily Dosage Schedule
+            </h3>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {selected.medications.map((m: any, idx: number) => (
+                <MedicalScheduleTimeline
+                  key={idx}
+                  medicationName={m.medicine_name}
+                  dosage={m.dosage}
+                  frequency={m.frequency_display || m.frequency}
+                  duration={`${m.duration} ${m.duration_unit || 'days'}`}
+                  instructions={m.instructions}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
