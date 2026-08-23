@@ -291,7 +291,25 @@ export default function Prescriptions() {
         </div>
 
         {/* Printable Letterhead Paper */}
-        <div id="printable-prescription" className="prescription-paper" style={{ marginBottom: 32 }}>
+        <div id="printable-prescription" className="prescription-paper" style={{ marginBottom: 32, position: 'relative', overflow: 'hidden' }}>
+          {/* Faint Medical Watermark */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%) rotate(-25deg)',
+              fontSize: '11rem',
+              fontWeight: 900,
+              fontFamily: 'serif',
+              color: 'rgba(2, 132, 199, 0.04)',
+              pointerEvents: 'none',
+              userSelect: 'none',
+              lineHeight: 1,
+            }}
+          >
+            ℞
+          </div>
           <div className="rx-header">
             <div className="rx-brand">
               <Activity size={32} color="#0284c7" />
@@ -431,10 +449,26 @@ export default function Prescriptions() {
             </div>
           )}
 
-          <div className="rx-footer">
+          <div className="rx-footer" style={{ borderTop: '2px dashed #e2e8f0', paddingTop: 16, marginTop: 24 }}>
             <div>
-              <p style={{ margin: 0 }}>This is an authenticated electronic prescription generated via MedTrax HMS.</p>
-              <p style={{ margin: '4px 0 0 0' }}>Scan or present this at authorized pharmacies and diagnostic laboratories.</p>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: '#334155', fontWeight: 600 }}>
+                This is an authenticated electronic prescription generated via MedTrax HMS.
+              </p>
+              <p style={{ margin: '3px 0 8px 0', fontSize: '0.75rem', color: '#64748b' }}>
+                Scan or present this at authorized pharmacies and diagnostic laboratories.
+              </p>
+
+              {/* Pseudo Digital Security Barcode */}
+              <div style={{ display: 'inline-flex', flexDirection: 'column', gap: 2, background: '#f8fafc', padding: '6px 10px', borderRadius: 4, border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', gap: 2, height: 20, alignItems: 'flex-end' }}>
+                  {[2, 1, 3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 1, 3, 1, 2, 3, 1, 2, 4, 1, 3, 2, 1, 4, 1, 3].map((w, i) => (
+                    <div key={i} style={{ width: w, height: '100%', background: '#0f172a' }} />
+                  ))}
+                </div>
+                <span style={{ fontSize: '0.62rem', fontFamily: 'monospace', color: '#64748b', letterSpacing: '0.08em' }}>
+                  SEC-MDX-{selected.id}-AUTH-VERIFIED
+                </span>
+              </div>
             </div>
             <div className="rx-signature">
               <div className="rx-signature-line" />
