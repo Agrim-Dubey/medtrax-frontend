@@ -24,6 +24,7 @@ import type {
 } from '../api/chat';
 import { useAuth } from '../context/AuthContext';
 import { getWebSocketUrl } from '../utils/websocket';
+import { useDebounce } from '../hooks/useDebounce';
 
 export default function Chat() {
   const { user } = useAuth();
@@ -38,6 +39,16 @@ export default function Chat() {
   const [inputText, setInputText] = useState('');
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [appointmentInfo, setAppointmentInfo] = useState<any>(null);
+  const [contactSearch, setContactSearch] = useState('');
+  const debouncedContactSearch = useDebounce(contactSearch, 250);
+
+  const filteredRooms = rooms.filter((room) => {
+    if (!debouncedContactSearch) return true;
+    const q = debouncedContactSearch.toLowerCase();
+    const name = (room.other_participant?.full_name || room.name || '').toLowerCase();
+    const lastMsg = (room.last_message?.content || '').toLowerCase();
+    return name.includes(q) || lastMsg.includes(q);
+  });
 
   // Doctor Networking State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -326,6 +337,29 @@ export default function Chat() {
                 </button>
               </div>
             )}
+
+            {/* Quick Contacts Filter */}
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-primary)' }}>
+              <div style={{ position: 'relative' }}>
+                <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input
+                  type="text"
+                  placeholder="Search chats or messages..."
+                  value={contactSearch}
+                  onChange={(e) => setContactSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px 10px 6px 30px',
+                    fontSize: '0.78rem',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--text-primary)',
+                    outline: 'none',
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           <div className="chat-rooms-list">
@@ -333,16 +367,16 @@ export default function Chat() {
               <div style={{ padding: 20, textAlign: 'center', color: 'var(--text-muted)' }}>
                 Loading conversations...
               </div>
-            ) : rooms.length === 0 ? (
+            ) : filteredRooms.length === 0 ? (
               <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                 <MessageSquare size={32} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
-                No active conversations found.
-                {isDoctor && tab === 'doctors' && (
+                {contactSearch ? 'No conversations match your search.' : 'No active conversations found.'}
+                {isDoctor && tab === 'doctors' && !contactSearch && (
                   <p style={{ marginTop: 8 }}>Use the + icon above to connect with fellow doctors.</p>
                 )}
               </div>
             ) : (
-              rooms.map(room => {
+              filteredRooms.map(room => {
                 const other = room.other_participant;
                 const displayName = other?.full_name || room.name || 'Chat';
                 const isSelected = selectedRoom?.id === room.id;
