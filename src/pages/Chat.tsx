@@ -66,6 +66,17 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const formatChatDateChip = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return 'Today';
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
   const playIncomingChime = () => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -519,43 +530,65 @@ export default function Chat() {
                 ) : (
                   messages.map((msg, idx) => {
                     const isMe = msg.sender?.id === user?.user_id;
+                    const dateChip = formatChatDateChip(msg.timestamp);
+                    const prevDateChip = idx > 0 ? formatChatDateChip(messages[idx - 1]?.timestamp) : '';
+                    const showDateChip = dateChip && dateChip !== prevDateChip;
 
                     return (
-                      <motion.div
-                        key={msg.id || idx}
-                        className={`chat-bubble ${isMe ? 'sent' : 'received'}`}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                      >
-                        {!isMe && (
-                          <div
-                            style={{
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              color: 'var(--accent)',
-                              marginBottom: 2,
-                            }}
-                          >
-                            {msg.sender?.full_name || msg.sender?.username}
+                      <div key={msg.id || idx}>
+                        {showDateChip && (
+                          <div style={{ display: 'flex', justifyContent: 'center', margin: '14px 0 8px 0' }}>
+                            <span
+                              style={{
+                                fontSize: '0.7rem',
+                                fontWeight: 600,
+                                padding: '3px 12px',
+                                borderRadius: 100,
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid var(--border-primary)',
+                                color: 'var(--text-secondary)',
+                                backdropFilter: 'blur(8px)',
+                              }}
+                            >
+                              {dateChip}
+                            </span>
                           </div>
                         )}
-                        <div>{msg.content}</div>
-                        <div className="chat-bubble-meta">
-                          <span>
-                            {msg.timestamp
-                              ? new Date(msg.timestamp).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })
-                              : ''}
-                          </span>
-                          {isMe && (
-                            <span>
-                              {msg.is_read ? <CheckCheck size={13} /> : <Check size={13} />}
-                            </span>
+                        <motion.div
+                          className={`chat-bubble ${isMe ? 'sent' : 'received'}`}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                        >
+                          {!isMe && (
+                            <div
+                              style={{
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                color: 'var(--accent)',
+                                marginBottom: 2,
+                              }}
+                            >
+                              {msg.sender?.full_name || msg.sender?.username}
+                            </div>
                           )}
-                        </div>
-                      </motion.div>
+                          <div>{msg.content}</div>
+                          <div className="chat-bubble-meta">
+                            <span>
+                              {msg.timestamp
+                                ? new Date(msg.timestamp).toLocaleTimeString([], {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })
+                                : ''}
+                            </span>
+                            {isMe && (
+                              <span>
+                                {msg.is_read ? <CheckCheck size={13} /> : <Check size={13} />}
+                              </span>
+                            )}
+                          </div>
+                        </motion.div>
+                      </div>
                     );
                   })
                 )}
