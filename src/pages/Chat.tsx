@@ -66,6 +66,27 @@ export default function Chat() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const playIncomingChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1); // A5
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    } catch {
+      // AudioContext autoplay policies
+    }
+  };
+
   // Load Rooms
   const loadRooms = useCallback(async () => {
     setLoadingRooms(true);
@@ -159,6 +180,9 @@ export default function Chat() {
           };
           setMessages(prev => {
             if (prev.some(m => m.id === formattedMsg.id)) return prev;
+            if (formattedMsg.sender.id !== user?.user_id) {
+              playIncomingChime();
+            }
             return [...prev, formattedMsg];
           });
           scrollToBottom();
