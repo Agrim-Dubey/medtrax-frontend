@@ -40,6 +40,8 @@ export default function Chat() {
   const [loadingRooms, setLoadingRooms] = useState(true);
   const [appointmentInfo, setAppointmentInfo] = useState<any>(null);
   const [contactSearch, setContactSearch] = useState('');
+  const [isPeerTyping, setIsPeerTyping] = useState(false);
+  const typingTimeoutRef = useRef<any>(null);
   const debouncedContactSearch = useDebounce(contactSearch, 250);
 
   const filteredRooms = rooms.filter((room) => {
@@ -197,6 +199,10 @@ export default function Chat() {
             return [...prev, formattedMsg];
           });
           scrollToBottom();
+        } else if (data.type === 'typing' && data.sender_id !== user?.user_id) {
+          setIsPeerTyping(true);
+          if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+          typingTimeoutRef.current = setTimeout(() => setIsPeerTyping(false), 3000);
         } else if (data.type === 'appointment_completed') {
           toast(data.message || 'Consultation session concluded', { icon: 'ℹ️' });
         }
@@ -592,6 +598,43 @@ export default function Chat() {
                     );
                   })
                 )}
+                <AnimatePresence>
+                  {isPeerTyping && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      className="chat-bubble received"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        padding: '8px 14px',
+                        borderRadius: 'var(--radius-md)',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginRight: 4 }}>
+                        {selectedRoom?.other_participant?.full_name || 'Participant'} is typing
+                      </span>
+                      <motion.span
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, repeat: Infinity }}
+                        style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }}
+                      />
+                      <motion.span
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, delay: 0.2, repeat: Infinity }}
+                        style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }}
+                      />
+                      <motion.span
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 1, delay: 0.4, repeat: Infinity }}
+                        style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 <div ref={messagesEndRef} />
               </div>
 
