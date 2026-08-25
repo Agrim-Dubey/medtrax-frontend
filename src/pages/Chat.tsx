@@ -55,6 +55,7 @@ export default function Chat() {
   // Doctor Networking State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedColleagueQuery = useDebounce(searchQuery, 350);
   const [searchResults, setSearchResults] = useState<DoctorSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<DoctorConnectionRequest[]>([]);
@@ -247,6 +248,26 @@ export default function Chat() {
       }
     }
   };
+
+  // Auto-search doctors as user types
+  useEffect(() => {
+    if (!isSearchOpen || !debouncedColleagueQuery.trim()) {
+      if (!debouncedColleagueQuery.trim()) setSearchResults([]);
+      return;
+    }
+    const executeSearch = async () => {
+      setSearching(true);
+      try {
+        const res = await chatAPI.searchDoctors(debouncedColleagueQuery.trim());
+        setSearchResults(res.data || []);
+      } catch {
+        // silent search
+      } finally {
+        setSearching(false);
+      }
+    };
+    executeSearch();
+  }, [isSearchOpen, debouncedColleagueQuery]);
 
   // Doctor Search
   const handleSearchDoctors = async () => {
