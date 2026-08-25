@@ -11,6 +11,8 @@ import {
   ArrowLeft,
   AlertTriangle,
   User,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { videoAPI } from '../api/video';
@@ -44,6 +46,8 @@ export default function VideoConsultation() {
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Media & WebRTC Refs
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -239,6 +243,35 @@ export default function VideoConsultation() {
   };
 
   // Controls: Screen Share
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+    }
+  };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'm' || e.key === 'M') toggleAudio();
+      if (e.key === 'v' || e.key === 'V') toggleVideo();
+      if (e.key === 'f' || e.key === 'F') toggleFullscreen();
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [toggleAudio, toggleVideo]);
+
   const toggleScreenShare = async () => {
     if (!peerConnectionRef.current) return;
     try {
@@ -346,7 +379,7 @@ export default function VideoConsultation() {
         </div>
       )}
 
-      <div className="video-room-container">
+      <div className="video-room-container" ref={containerRef}>
         {/* Top Status Badge */}
         <div className="video-status-overlay">
           <div className="pulse-dot" style={{ background: callActive ? '#22c55e' : '#f59e0b' }} />
@@ -435,6 +468,14 @@ export default function VideoConsultation() {
             title={isScreenSharing ? 'Stop Screen Share' : 'Share Screen'}
           >
             <Monitor size={20} />
+          </button>
+
+          <button
+            className={`control-btn ${isFullscreen ? 'active-off' : ''}`}
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit Full Screen (F)' : 'Full Screen (F)'}
+          >
+            {isFullscreen ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
           </button>
 
           <button
