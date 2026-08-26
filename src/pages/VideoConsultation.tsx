@@ -47,6 +47,7 @@ export default function VideoConsultation() {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [networkQuality, setNetworkQuality] = useState<'good' | 'fair' | 'poor'>('good');
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Media & WebRTC Refs
@@ -321,6 +322,29 @@ export default function VideoConsultation() {
     setIsScreenSharing(false);
   };
 
+  // WebRTC Network Quality Monitor
+  useEffect(() => {
+    if (!callActive || !peerConnectionRef.current) return;
+    const interval = setInterval(async () => {
+      try {
+        const pc = peerConnectionRef.current;
+        if (!pc) return;
+        const stats = await pc.getStats();
+        stats.forEach((report) => {
+          if (report.type === 'candidate-pair' && report.currentRoundTripTime !== undefined) {
+            const rtt = report.currentRoundTripTime * 1000;
+            if (rtt < 120) setNetworkQuality('good');
+            else if (rtt < 300) setNetworkQuality('fair');
+            else setNetworkQuality('poor');
+          }
+        });
+      } catch {
+        // silent
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [callActive]);
+
   // End Call
   const handleEndCall = async () => {
     try {
@@ -385,9 +409,19 @@ export default function VideoConsultation() {
           <div className="pulse-dot" style={{ background: callActive ? '#22c55e' : '#f59e0b' }} />
           <span>{callActive ? 'Consultation Live' : connecting ? 'Connecting...' : 'Waiting for participant'}</span>
           {callActive && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, color: 'var(--text-muted)' }}>
-              <Clock size={13} /> {formatDuration(callDuration)}
-            </span>
+            <>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, color: 'var(--text-muted)' }}>
+                <Clock size={13} /> {formatDuration(callDuration)}
+              </span>
+              <div
+                style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 2, height: 12, marginLeft: 8 }}
+                title={`Network Connection: ${networkQuality.toUpperCase()}`}
+              >
+                <span style={{ width: 2.5, height: 4, borderRadius: 1, background: networkQuality === 'poor' ? '#ef4444' : '#22c55e' }} />
+                <span style={{ width: 2.5, height: 8, borderRadius: 1, background: networkQuality === 'poor' ? 'rgba(255,255,255,0.2)' : networkQuality === 'fair' ? '#eab308' : '#22c55e' }} />
+                <span style={{ width: 2.5, height: 12, borderRadius: 1, background: networkQuality !== 'good' ? 'rgba(255,255,255,0.2)' : '#22c55e' }} />
+              </div>
+            </>
           )}
         </div>
 
