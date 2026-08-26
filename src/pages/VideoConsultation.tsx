@@ -19,6 +19,7 @@ import { videoAPI } from '../api/video';
 import type { VideoCallInfo } from '../api/video';
 import { useAuth } from '../context/AuthContext';
 import { getWebSocketUrl } from '../utils/websocket';
+import AudioVisualizer from '../components/AudioVisualizer';
 
 const ICE_SERVERS = {
   iceServers: [
@@ -466,14 +467,19 @@ export default function VideoConsultation() {
                 position: 'absolute',
                 bottom: 6,
                 left: 8,
-                background: 'rgba(0,0,0,0.6)',
+                background: 'rgba(0,0,0,0.65)',
                 borderRadius: 4,
-                padding: '2px 6px',
+                padding: '2px 8px',
                 fontSize: '0.68rem',
                 color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                backdropFilter: 'blur(4px)',
               }}
             >
-              You {isAudioMuted ? '(Muted)' : ''}
+              <span>You {isAudioMuted ? '(Muted)' : ''}</span>
+              {!isAudioMuted && <AudioVisualizer isActive={callActive} barCount={4} color="#38bdf8" />}
             </div>
           </div>
         </div>
