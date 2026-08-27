@@ -214,11 +214,51 @@ export default function Community() {
         </div>
       </div>
       {categories.length > 0 && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-          <button className={`btn btn-sm ${!activeCategory ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setActiveCategory(''); loadPosts(); }}>All</button>
-          {categories.map(c => (
-            <button key={c.id} className={`btn btn-sm ${activeCategory === c.slug ? 'btn-primary' : 'btn-secondary'}`} onClick={() => { setActiveCategory(c.slug); loadPosts(c.slug); }}>{c.name}</button>
-          ))}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' }}>
+          <button
+            type="button"
+            className={`btn btn-sm ${!activeCategory ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ borderRadius: 100, padding: '4px 14px', fontSize: '0.8rem' }}
+            onClick={() => { setActiveCategory(''); loadPosts(); }}
+          >
+            All Topics ({posts.length})
+          </button>
+          {categories.map(c => {
+            const count = posts.filter(p => p.category?.slug === c.slug || p.category_name === c.name).length;
+            const isSelected = activeCategory === c.slug;
+
+            return (
+              <button
+                key={c.id}
+                type="button"
+                className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  borderRadius: 100,
+                  padding: '4px 14px',
+                  fontSize: '0.8rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+                onClick={() => { setActiveCategory(c.slug); loadPosts(c.slug); }}
+              >
+                <span>{c.name}</span>
+                {count > 0 && (
+                  <span
+                    style={{
+                      fontSize: '0.7rem',
+                      padding: '1px 6px',
+                      borderRadius: 100,
+                      background: isSelected ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.1)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
       {loading ? <div className="loading-container"><div className="spinner" /></div> :
