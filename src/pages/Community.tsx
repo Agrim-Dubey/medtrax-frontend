@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, ThumbsUp, Eye, Send, ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { MessageSquare, ThumbsUp, Eye, Send, ArrowLeft, Plus, Trash2, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { communityAPI } from '../api/community';
 import { useAuth } from '../context/AuthContext';
+import { useDebounce } from '../hooks/useDebounce';
 
 export default function Community() {
   const { user } = useAuth();
@@ -16,7 +17,20 @@ export default function Community() {
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [createForm, setCreateForm] = useState({ title: '', content: '', category: '', status: 'published' });
+
+  const filteredPosts = useMemo(() => {
+    if (!debouncedSearch) return posts;
+    const q = debouncedSearch.toLowerCase();
+    return posts.filter(
+      (p) =>
+        p.title?.toLowerCase().includes(q) ||
+        p.content?.toLowerCase().includes(q) ||
+        p.author_name?.toLowerCase().includes(q)
+    );
+  }, [posts, debouncedSearch]);
 
   const loadPosts = async (cat?: string) => {
     setLoading(true);
@@ -167,9 +181,37 @@ export default function Community() {
 
   return (
     <div>
-      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <div><h1>Community</h1><p>Health discussions and articles</p></div>
-        {isDoctor && <button className="btn btn-primary btn-sm" onClick={() => setView('create')}><Plus size={16} /> New Post</button>}
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <h1>Community Forum</h1>
+          <p>Clinical discussions, health guidelines & peer articles</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ position: 'relative', width: 240 }}>
+            <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+            <input
+              type="text"
+              placeholder="Search articles & tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '6px 10px 6px 30px',
+                fontSize: '0.8rem',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid var(--border-primary)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-primary)',
+                outline: 'none',
+              }}
+            />
+          </div>
+          {isDoctor && (
+            <button className="btn btn-primary btn-sm" onClick={() => setView('create')}>
+              <Plus size={16} /> New Post
+            </button>
+          )}
+        </div>
       </div>
       {categories.length > 0 && (
         <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
@@ -180,23 +222,30 @@ export default function Community() {
         </div>
       )}
       {loading ? <div className="loading-container"><div className="spinner" /></div> :
-        posts.length === 0 ? <div className="empty-state"><MessageSquare size={48} /><h3>No posts yet</h3></div> :
-        posts.map((p: any, i: number) => (
-          <motion.div key={p.id} className="post-card" onClick={() => openPost(p.slug)} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
-            <div className="post-meta">
-              <span>{p.author_name || p.author?.username || 'Unknown'}</span>
-              <span>{p.published_at?.split('T')[0] || p.created_at?.split('T')[0]}</span>
-              {p.category_name && <span className="badge badge-confirmed">{p.category_name}</span>}
-            </div>
-            <h3>{p.title}</h3>
-            <p className="post-excerpt">{p.excerpt || p.content?.slice(0, 150)}</p>
-            <div className="post-actions">
-              <span className="post-action-btn"><ThumbsUp size={14} /> {p.total_likes || p.likes_count || 0}</span>
-              <span className="post-action-btn"><Eye size={14} /> {p.views_count || 0}</span>
-              <span className="post-action-btn"><MessageSquare size={14} /> {p.comments_count || 0}</span>
-            </div>
-          </motion.div>
-        ))
+        filteredPosts.length === 0 ? (
+          <div className="empty-state">
+            <MessageSquare size={48} />
+            <h3>{searchQuery ? 'No articles match your search' : 'No posts yet'}</h3>
+            <p>{searchQuery ? 'Try broader keywords or reset category filter' : 'Be the first to start a clinical conversation'}</p>
+          </div>
+        ) : (
+          filteredPosts.map((p: any, i: number) => (
+            <motion.div key={p.id} className="post-card" onClick={() => openPost(p.slug)} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
+              <div className="post-meta">
+                <span>{p.author_name || p.author?.username || 'Unknown'}</span>
+                <span>{p.published_at?.split('T')[0] || p.created_at?.split('T')[0]}</span>
+                {p.category_name && <span className="badge badge-confirmed">{p.category_name}</span>}
+              </div>
+              <h3>{p.title}</h3>
+              <p className="post-excerpt">{p.excerpt || p.content?.slice(0, 150)}</p>
+              <div className="post-actions">
+                <span className="post-action-btn"><ThumbsUp size={14} /> {p.total_likes || p.likes_count || 0}</span>
+                <span className="post-action-btn"><Eye size={14} /> {p.views_count || 0}</span>
+                <span className="post-action-btn"><MessageSquare size={14} /> {p.comments_count || 0}</span>
+              </div>
+            </motion.div>
+          ))
+        )
       }
     </div>
   );
