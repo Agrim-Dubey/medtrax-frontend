@@ -21,6 +21,7 @@ export default function Community() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [editorTab, setEditorTab] = useState<'write' | 'preview'>('write');
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [createForm, setCreateForm] = useState({ title: '', content: '', category: '', status: 'published' });
 
@@ -124,7 +125,71 @@ export default function Community() {
                 <option value="">None</option>{categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            <div className="form-group"><label className="form-label">Content</label><textarea className="form-textarea" rows={8} value={createForm.content} onChange={e => setCreateForm(p => ({ ...p, content: e.target.value }))} /></div>
+            <div className="form-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <label className="form-label" style={{ margin: 0 }}>Content (Clinical Analysis & Guidelines)</label>
+                <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.05)', borderRadius: 6, padding: 2 }}>
+                  <button
+                    type="button"
+                    onClick={() => setEditorTab('write')}
+                    style={{
+                      padding: '3px 10px',
+                      fontSize: '0.75rem',
+                      borderRadius: 4,
+                      border: 'none',
+                      background: editorTab === 'write' ? 'var(--accent)' : 'transparent',
+                      color: editorTab === 'write' ? '#0a0e1a' : 'var(--text-secondary)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Write
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditorTab('preview')}
+                    style={{
+                      padding: '3px 10px',
+                      fontSize: '0.75rem',
+                      borderRadius: 4,
+                      border: 'none',
+                      background: editorTab === 'preview' ? 'var(--accent)' : 'transparent',
+                      color: editorTab === 'preview' ? '#0a0e1a' : 'var(--text-secondary)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Preview
+                  </button>
+                </div>
+              </div>
+
+              {editorTab === 'write' ? (
+                <textarea
+                  className="form-textarea"
+                  rows={8}
+                  placeholder="Share health guidance, clinical findings, or discussion topics..."
+                  value={createForm.content}
+                  onChange={e => setCreateForm(p => ({ ...p, content: e.target.value }))}
+                />
+              ) : (
+                <div
+                  style={{
+                    minHeight: 180,
+                    padding: 14,
+                    background: 'rgba(0,0,0,0.25)',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-primary)',
+                    fontSize: '0.92rem',
+                    lineHeight: 1.7,
+                    whiteSpace: 'pre-wrap',
+                    color: createForm.content ? 'var(--text-primary)' : 'var(--text-muted)',
+                  }}
+                >
+                  {createForm.content || 'Nothing to preview yet. Switch to "Write" to start typing.'}
+                </div>
+              )}
+            </div>
             <button className="btn btn-primary btn-full btn-lg" type="submit">Publish Post</button>
           </form>
         </motion.div>
