@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { communityAPI } from '../api/community';
 import { useAuth } from '../context/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 export default function Community() {
   const { user } = useAuth();
@@ -18,6 +19,8 @@ export default function Community() {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
   const debouncedSearch = useDebounce(searchQuery, 300);
   const [createForm, setCreateForm] = useState({ title: '', content: '', category: '', status: 'published' });
 
@@ -72,16 +75,20 @@ export default function Community() {
     } catch { toast.error('Failed'); }
   };
 
-  const handleDeletePost = async (slug: string) => {
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
+  const confirmDeletePost = async () => {
+    if (!selectedPost) return;
+    setIsDeletingPost(true);
     try {
-      await communityAPI.deletePost(slug);
+      await communityAPI.deletePost(selectedPost.slug);
       toast.success('Post deleted successfully');
+      setIsDeleteConfirmOpen(false);
       setView('list');
       setSelectedPost(null);
       loadPosts(activeCategory);
     } catch {
       toast.error('Failed to delete post');
+    } finally {
+      setIsDeletingPost(false);
     }
   };
 
@@ -140,7 +147,7 @@ export default function Community() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {isAuthor && (
-              <button className="btn btn-danger btn-sm" onClick={() => handleDeletePost(selectedPost.slug)}>
+              <button className="btn btn-danger btn-sm" onClick={() => setIsDeleteConfirmOpen(true)}>
                 <Trash2 size={16} /> Delete
               </button>
             )}
@@ -287,6 +294,17 @@ export default function Community() {
           ))
         )
       }
+
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={confirmDeletePost}
+        title="Delete Community Post"
+        message="Are you sure you want to permanently delete this post? All discussions and comments on this post will also be removed."
+        confirmText="Delete Post"
+        variant="danger"
+        loading={isDeletingPost}
+      />
     </div>
   );
 }
