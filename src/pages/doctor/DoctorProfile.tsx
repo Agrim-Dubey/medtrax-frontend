@@ -4,6 +4,7 @@ import { User, Save, Shield, Stethoscope } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { doctorDashboardAPI } from '../../api/dashboard';
 import Badge from '../../components/Badge';
+import { validation } from '../../utils/validation';
 
 interface FieldProps {
   label: string;
@@ -44,6 +45,23 @@ export default function DoctorProfile() {
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
+    // Regex validation checks
+    if (form.phone_number && !validation.isValidPhone(form.phone_number)) {
+      return toast.error('Please enter a valid primary phone number');
+    }
+    if (form.alternate_phone_number && !validation.isValidPhone(form.alternate_phone_number)) {
+      return toast.error('Please enter a valid alternate phone number');
+    }
+    if (form.alternate_email && !validation.isValidEmail(form.alternate_email)) {
+      return toast.error('Please enter a valid alternate email address');
+    }
+    if (form.emergency_contact_number && !validation.isValidPhone(form.emergency_contact_number)) {
+      return toast.error('Please enter a valid emergency contact phone number');
+    }
+    if (form.pincode && !/^\d{4,10}$/.test(form.pincode.trim())) {
+      return toast.error('Pincode must be between 4 and 10 digits');
+    }
+
     setSaving(true);
     try {
       const editable = ['first_name','last_name','phone_number','alternate_phone_number','alternate_email','address','city','state','pincode','country','marital_status','qualification','years_of_experience','department','clinic_name','emergency_contact_person','emergency_contact_number'];
