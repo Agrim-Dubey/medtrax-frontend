@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Save, Shield } from 'lucide-react';
+import { User, Save, Shield, Stethoscope } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { doctorDashboardAPI } from '../../api/dashboard';
+import Badge from '../../components/Badge';
 
 interface FieldProps {
   label: string;
@@ -86,6 +87,68 @@ export default function DoctorProfile() {
           </> : <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>Edit Profile</button>}
         </div>
       </div>
+
+      {/* Doctor Identity Hero Banner */}
+      <motion.div
+        className="glass-card"
+        style={{
+          marginBottom: 24,
+          padding: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 20,
+          background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.1) 0%, rgba(30, 41, 59, 0.5) 100%)',
+          border: '1px solid rgba(56, 189, 248, 0.25)',
+        }}
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              boxShadow: '0 8px 24px rgba(2, 132, 199, 0.35)',
+            }}
+          >
+            {(profile.first_name?.[0] || profile.username?.[0] || 'D').toUpperCase()}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>
+                Dr. {profile.first_name ? `${profile.first_name} ${profile.last_name || ''}` : profile.username}
+              </h2>
+              <Badge variant="doctor">Medical Practitioner</Badge>
+              {profile.is_approved && <Badge variant="success">Verified License</Badge>}
+            </div>
+            <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Stethoscope size={15} color="var(--accent)" />
+              {profile.specialization || 'General Physician'} {profile.department ? `• ${profile.department}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 16 }}>
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Experience</span>
+            <strong style={{ fontSize: '1.1rem', color: 'var(--accent)' }}>{profile.years_of_experience ?? 0}+ yrs</strong>
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Reg. License</span>
+            <strong style={{ fontSize: '1.1rem', color: 'var(--text-primary)', fontFamily: 'monospace' }}>{profile.registration_number || 'REG-PENDING'}</strong>
+          </div>
+        </div>
+      </motion.div>
 
       <div className="content-grid">
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
