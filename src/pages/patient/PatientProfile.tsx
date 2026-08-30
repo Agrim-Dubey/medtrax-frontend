@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Save, Heart, Shield } from 'lucide-react';
+import { User, Save, Heart, Shield, Activity } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { patientDashboardAPI } from '../../api/dashboard';
+import Badge from '../../components/Badge';
+import { validation } from '../../utils/validation';
 
 interface PatientFieldProps {
   label: string;
@@ -48,6 +50,20 @@ export default function PatientProfile() {
   const set = (k: string, v: any) => setForm((p: any) => ({ ...p, [k]: v }));
 
   const handleSave = async () => {
+    // Regex validation checks
+    if (form.phone_number && !validation.isValidPhone(form.phone_number)) {
+      return toast.error('Please enter a valid phone number');
+    }
+    if (form.emergency_contact && !validation.isValidPhone(form.emergency_contact)) {
+      return toast.error('Please enter a valid emergency contact phone number');
+    }
+    if (form.emergency_email && !validation.isValidEmail(form.emergency_email)) {
+      return toast.error('Please enter a valid emergency contact email');
+    }
+    if (form.is_insurance && form.ins_policy_number && !/^[A-Z0-9-]{4,25}$/i.test(form.ins_policy_number.trim())) {
+      return toast.error('Insurance policy number must be 4-25 alphanumeric characters');
+    }
+
     setSaving(true);
     try {
       const editable = ['first_name','last_name','phone_number','emergency_contact','emergency_email','city','is_insurance','ins_company_name','ins_policy_number','known_allergies','chronic_diseases','previous_surgeries','family_medical_history'];
@@ -88,6 +104,72 @@ export default function PatientProfile() {
           </> : <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>Edit Profile</button>}
         </div>
       </div>
+
+      {/* Patient Identity Banner */}
+      <motion.div
+        className="glass-card"
+        style={{
+          marginBottom: 24,
+          padding: 24,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 20,
+          background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(30, 41, 59, 0.5) 100%)',
+          border: '1px solid rgba(16, 185, 129, 0.25)',
+        }}
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div
+            style={{
+              width: 72,
+              height: 72,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.75rem',
+              fontWeight: 800,
+              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.3)',
+            }}
+          >
+            {(profile.first_name?.[0] || profile.username?.[0] || 'P').toUpperCase()}
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: '1.35rem', fontWeight: 800 }}>
+                {profile.first_name ? `${profile.first_name} ${profile.last_name || ''}` : profile.username}
+              </h2>
+              <Badge variant="patient">Registered Patient</Badge>
+              {profile.is_insurance && <Badge variant="success">Active Insurance</Badge>}
+            </div>
+            <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Activity size={15} color="var(--success)" />
+              Blood Group: <strong style={{ color: 'var(--text-primary)' }}>{profile.blood_group || 'Unrecorded'}</strong>
+              {profile.city ? ` • City: ${profile.city}` : ''}
+            </p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 16 }}>
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Gender</span>
+            <strong style={{ fontSize: '1.05rem', color: 'var(--text-primary)', textTransform: 'capitalize' }}>{profile.gender || '—'}</strong>
+          </div>
+          <div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', textAlign: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block' }}>Insurance Carrier</span>
+            <strong style={{ fontSize: '1.05rem', color: profile.is_insurance ? 'var(--success)' : 'var(--text-muted)' }}>
+              {profile.is_insurance ? profile.ins_company_name || 'Covered' : 'None'}
+            </strong>
+          </div>
+        </div>
+      </motion.div>
+
       <div className="content-grid">
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: 16, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 8 }}><User size={18} /> Personal</h3>
