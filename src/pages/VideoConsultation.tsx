@@ -223,7 +223,7 @@ export default function VideoConsultation() {
   }, [callActive]);
 
   // Controls: Audio Mute
-  const toggleAudio = () => {
+  const toggleAudio = useCallback(() => {
     if (localStreamRef.current) {
       const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
@@ -231,10 +231,10 @@ export default function VideoConsultation() {
         setIsAudioMuted(!audioTrack.enabled);
       }
     }
-  };
+  }, []);
 
   // Controls: Video Mute
-  const toggleVideo = () => {
+  const toggleVideo = useCallback(() => {
     if (localStreamRef.current) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
@@ -242,7 +242,7 @@ export default function VideoConsultation() {
         setIsVideoMuted(!videoTrack.enabled);
       }
     }
-  };
+  }, []);
 
   // Controls: Screen Share
   const toggleFullscreen = () => {

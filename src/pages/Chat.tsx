@@ -221,7 +221,7 @@ export default function Chat() {
         ws.close();
       }
     };
-  }, [selectedRoom]);
+  }, [selectedRoom, user?.user_id]);
 
   useEffect(() => {
     scrollToBottom();

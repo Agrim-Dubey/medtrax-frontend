@@ -17,7 +17,7 @@ export const validation = {
   emailRegex: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/,
 
   // International phone regex (E.164 or national 10-digit format)
-  phoneRegex: /^\+?[1-9]\d{1,14}$|^(\+91[\-\s]?)?[0]?(91)?[6789]\d{9}$/,
+  phoneRegex: /^\+?[1-9]\d{1,14}$|^(\+91[-\s]?)?[0]?(91)?[6789]\d{9}$/,
 
   // Blood pressure: systolic/diastolic (e.g. 120/80)
   bloodPressureRegex: /^(\d{2,3})\/(\d{2,3})$/,
@@ -35,7 +35,7 @@ export const validation = {
 
   isValidPhone(phone: string): boolean {
     if (!phone) return false;
-    const clean = phone.replace(/[\s\-\(\)]/g, '');
+    const clean = phone.replace(/[\s()-]/g, '');
     return clean.length >= 8 && clean.length <= 15 && /^\+?\d+$/.test(clean);
   },
 
