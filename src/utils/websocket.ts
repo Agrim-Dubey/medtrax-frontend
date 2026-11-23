@@ -1,5 +1,8 @@
 export function getWebSocketUrl(path: string, token?: string | null): string {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  let baseUrl = (import.meta.env.VITE_API_BASE_URL || window.location.origin).trim().replace(/\/+$/, '');
+  if (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://')) {
+    baseUrl = `https://${baseUrl}`;
+  }
   const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   
   // Convert http/https to ws/wss
