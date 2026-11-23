@@ -10,9 +10,13 @@ import {
   Search,
   Activity,
   Trash2,
+  Sparkles,
+  ShieldAlert,
+  Copy,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { prescriptionsAPI } from '../api/prescriptions';
+import { aiAPI } from '../api/ai';
 import { useAuth } from '../context/AuthContext';
 import { useDebounce } from '../hooks/useDebounce';
 import { validation } from '../utils/validation';
@@ -57,6 +61,19 @@ export default function Prescriptions() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [doctorPatients, setDoctorPatients] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // AI Feature States
+  const [checkingSafety, setCheckingSafety] = useState(false);
+  const [safetyCheckResult, setSafetyCheckResult] = useState<any>(null);
+
+  const [soapModal, setSoapModal] = useState<any>(null);
+  const [soapLoading, setSoapLoading] = useState(false);
+
+  const [explainModal, setExplainModal] = useState<any>(null);
+  const [explainLoading, setExplainLoading] = useState(false);
+
+  const [carePlanModal, setCarePlanModal] = useState<any>(null);
+  const [carePlanLoading, setCarePlanLoading] = useState(false);
 
   // Form Fields
   const [selectedPatientId, setSelectedPatientId] = useState<number | ''>('');
@@ -152,6 +169,79 @@ export default function Prescriptions() {
     const updated = [...labTests];
     updated[index] = { ...updated[index], [field]: val };
     setLabTests(updated);
+  };
+
+  const handlePharmaGuardCheck = async () => {
+    if (!selectedPatientId) return toast.error('Select a patient first');
+    const validMeds = medications.filter(m => m.medicine_name.trim());
+    if (validMeds.length === 0) return toast.error('Add at least one medication name');
+
+    setCheckingSafety(true);
+    setSafetyCheckResult(null);
+    try {
+      const res = await aiAPI.checkSafety({
+        patient_id: Number(selectedPatientId),
+        diagnosis: diagnosis.trim(),
+        medications: validMeds,
+      });
+      setSafetyCheckResult(res.data.data);
+      if (res.data.data.status === 'BLOCKED') {
+        toast.error('SAFETY ALERT: Critical contraindication detected!');
+      } else if (res.data.data.status === 'WARNING') {
+        toast('Warning: Potential interactions flagged', { icon: '⚠️' });
+      } else {
+        toast.success('PharmaGuard verification: Prescription is safe (100/100)');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Safety check failed');
+    } finally {
+      setCheckingSafety(false);
+    }
+  };
+
+  const handleGenerateSoap = async () => {
+    if (!selected?.id) return;
+    setSoapLoading(true);
+    try {
+      const res = await aiAPI.summarize({
+        mode: 'clinical_soap',
+        prescription_id: selected.id,
+      });
+      setSoapModal(res.data.data);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to generate SOAP note');
+    } finally {
+      setSoapLoading(false);
+    }
+  };
+
+  const handleExplainPrescription = async () => {
+    if (!selected?.id) return;
+    setExplainLoading(true);
+    try {
+      const res = await aiAPI.summarize({
+        mode: 'patient_friendly',
+        prescription_id: selected.id,
+      });
+      setExplainModal(res.data.data);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to explain prescription');
+    } finally {
+      setExplainLoading(false);
+    }
+  };
+
+  const handleViewCarePlan = async () => {
+    if (!selected?.id) return;
+    setCarePlanLoading(true);
+    try {
+      const res = await aiAPI.getCarePlan({ prescription_id: selected.id });
+      setCarePlanModal(res.data.data);
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Failed to load care plan');
+    } finally {
+      setCarePlanLoading(false);
+    }
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -280,10 +370,24 @@ export default function Prescriptions() {
               Rx Ref #{selected.id} • Issued on {selected.created_at?.split('T')[0]}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button className="btn btn-primary btn-sm" onClick={() => window.print()}>
               <Printer size={16} /> Print / Save PDF
             </button>
+            {isDoctor ? (
+              <button className="btn btn-secondary btn-sm" onClick={handleGenerateSoap} disabled={soapLoading}>
+                <Sparkles size={16} /> {soapLoading ? 'Generating SOAP...' : 'AI SOAP Note'}
+              </button>
+            ) : (
+              <>
+                <button className="btn btn-secondary btn-sm" onClick={handleExplainPrescription} disabled={explainLoading}>
+                  <Sparkles size={16} /> {explainLoading ? 'Translating...' : 'AI Plain English'}
+                </button>
+                <button className="btn btn-secondary btn-sm" onClick={handleViewCarePlan} disabled={carePlanLoading}>
+                  <Pill size={16} /> {carePlanLoading ? 'Loading Plan...' : 'Care Plan'}
+                </button>
+              </>
+            )}
             <button className="btn btn-secondary btn-sm" onClick={() => setSelected(null)}>
               ← Back to List
             </button>
@@ -903,17 +1007,251 @@ export default function Prescriptions() {
                       />
                     </div>
                   </div>
+                  {/* PharmaGuard Safety Check Warning Box */}
+                  {safetyCheckResult && (
+                    <div
+                      style={{
+                        marginTop: 16,
+                        padding: 14,
+                        borderRadius: 10,
+                        backgroundColor:
+                          safetyCheckResult.status === 'APPROVED'
+                            ? 'rgba(52, 211, 153, 0.12)'
+                            : safetyCheckResult.status === 'WARNING'
+                            ? 'rgba(251, 191, 36, 0.12)'
+                            : 'rgba(239, 68, 68, 0.15)',
+                        border: `1px solid ${
+                          safetyCheckResult.status === 'APPROVED'
+                            ? '#34d399'
+                            : safetyCheckResult.status === 'WARNING'
+                            ? '#fbbf24'
+                            : '#ef4444'
+                        }`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <strong style={{ fontSize: '0.9rem', color: '#f8fafc' }}>
+                          PharmaGuard Score: {safetyCheckResult.safety_score}/100 ({safetyCheckResult.status})
+                        </strong>
+                        <span
+                          style={{
+                            fontSize: '0.78rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: 0.5,
+                            color: safetyCheckResult.status === 'APPROVED' ? '#34d399' : '#f87171',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {safetyCheckResult.risk_level} RISK
+                        </span>
+                      </div>
+                      <p style={{ margin: '0 0 6px', fontSize: '0.85rem', lineHeight: 1.4, color: '#e2e8f0' }}>
+                        {safetyCheckResult.summary}
+                      </p>
+                      {safetyCheckResult.interactions?.map((it: any, i: number) => (
+                        <div key={i} style={{ fontSize: '0.8rem', color: '#fca5a5', marginTop: 4 }}>
+                          ⚠️ <strong>{it.type}:</strong> {it.explanation}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={() => setIsCreateOpen(false)}>
-                    Cancel
+                <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={handlePharmaGuardCheck}
+                    disabled={checkingSafety}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+                  >
+                    <ShieldAlert size={15} color="#38bdf8" />
+                    {checkingSafety ? 'Checking Safety...' : 'PharmaGuard Safety Check'}
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={submitting}>
-                    {submitting ? 'Creating...' : 'Issue Prescription'}
-                  </button>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => setIsCreateOpen(false)}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary" disabled={submitting}>
+                      {submitting ? 'Creating...' : 'Issue Prescription'}
+                    </button>
+                  </div>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Doctor AI SOAP Note Modal ─── */}
+      <AnimatePresence>
+        {soapModal && (
+          <div className="modal-overlay" onClick={() => setSoapModal(null)}>
+            <motion.div
+              className="modal-content"
+              style={{ maxWidth: 680 }}
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Sparkles size={18} color="#60a5fa" /> Clinical SOAP Documentation
+                </h3>
+                <button className="btn btn-secondary btn-sm" onClick={() => setSoapModal(null)}>✕</button>
+              </div>
+              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                <div style={{ padding: 12, borderRadius: 8, backgroundColor: 'rgba(30, 41, 59, 0.7)', marginBottom: 16, fontSize: '0.9rem' }}>
+                  {soapModal.summary}
+                </div>
+                {soapModal.soap_note && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(15, 23, 42, 0.7)' }}>
+                      <strong style={{ color: '#60a5fa', fontSize: '0.85rem' }}>Subjective (S)</strong>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.88rem' }}>{soapModal.soap_note.subjective}</p>
+                    </div>
+                    <div style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(15, 23, 42, 0.7)' }}>
+                      <strong style={{ color: '#34d399', fontSize: '0.85rem' }}>Objective (O)</strong>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.88rem' }}>{soapModal.soap_note.objective}</p>
+                    </div>
+                    <div style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(15, 23, 42, 0.7)' }}>
+                      <strong style={{ color: '#fbbf24', fontSize: '0.85rem' }}>Assessment (A)</strong>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.88rem' }}>{soapModal.soap_note.assessment}</p>
+                    </div>
+                    <div style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(15, 23, 42, 0.7)' }}>
+                      <strong style={{ color: '#c084fc', fontSize: '0.85rem' }}>Plan (P)</strong>
+                      <p style={{ margin: '4px 0 0', fontSize: '0.88rem' }}>{soapModal.soap_note.plan}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  onClick={() => {
+                    if (soapModal.soap_note) {
+                      const text = `S: ${soapModal.soap_note.subjective}\nO: ${soapModal.soap_note.objective}\nA: ${soapModal.soap_note.assessment}\nP: ${soapModal.soap_note.plan}`;
+                      navigator.clipboard.writeText(text);
+                      toast.success('SOAP note copied to clipboard!');
+                    }
+                  }}
+                >
+                  <Copy size={14} /> Copy SOAP Note
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Patient AI Plain English Explanation Modal ─── */}
+      <AnimatePresence>
+        {explainModal && (
+          <div className="modal-overlay" onClick={() => setExplainModal(null)}>
+            <motion.div
+              className="modal-content"
+              style={{ maxWidth: 650 }}
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Sparkles size={18} color="#34d399" /> Prescription in Plain English
+                </h3>
+                <button className="btn btn-secondary btn-sm" onClick={() => setExplainModal(null)}>✕</button>
+              </div>
+              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                <p style={{ fontSize: '0.95rem', lineHeight: 1.5, color: '#f8fafc', marginBottom: 16 }}>
+                  {explainModal.summary}
+                </p>
+                {explainModal.medication_guide?.length > 0 && (
+                  <div style={{ marginBottom: 16 }}>
+                    <h4 style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>How to Take Your Medicines</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {explainModal.medication_guide.map((mg: any, idx: number) => (
+                        <div key={idx} style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(30, 41, 59, 0.6)', border: '1px solid rgba(148, 163, 184, 0.15)' }}>
+                          <strong>{mg.medicine_name}</strong>
+                          <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#cbd5e1' }}>{mg.plain_instruction}</p>
+                          {mg.notes && <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#94a3b8' }}>💡 {mg.notes}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {explainModal.lab_test_guide?.length > 0 && (
+                  <div>
+                    <h4 style={{ margin: '0 0 8px', fontSize: '0.95rem' }}>Lab Test Preparation</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {explainModal.lab_test_guide.map((lg: any, idx: number) => (
+                        <div key={idx} style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(99, 179, 237, 0.2)' }}>
+                          <strong>{lg.test_name}</strong>
+                          <p style={{ margin: '2px 0 0', fontSize: '0.85rem', color: '#93c5fd' }}>{lg.preparation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setExplainModal(null)}>Close</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Patient Care Plan Modal ─── */}
+      <AnimatePresence>
+        {carePlanModal && (
+          <div className="modal-overlay" onClick={() => setCarePlanModal(null)}>
+            <motion.div
+              className="modal-content"
+              style={{ maxWidth: 700 }}
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+            >
+              <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Pill size={18} color="#60a5fa" /> Medication Care Plan & Schedule
+                </h3>
+                <button className="btn btn-secondary btn-sm" onClick={() => setCarePlanModal(null)}>✕</button>
+              </div>
+              <div className="modal-body" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                <p style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: 14 }}>
+                  {carePlanModal.summary}
+                </p>
+                {(['morning', 'afternoon', 'evening', 'bedtime', 'as_needed'] as const).map((slot) => {
+                  const items = carePlanModal.daily_schedule?.[slot] || [];
+                  if (items.length === 0) return null;
+                  const labels: Record<string, string> = {
+                    morning: '🌅 Morning',
+                    afternoon: '☀️ Afternoon',
+                    evening: '🌆 Evening',
+                    bedtime: '🌙 Bedtime',
+                    as_needed: '⚡ As Needed',
+                  };
+                  return (
+                    <div key={slot} style={{ padding: 10, borderRadius: 8, backgroundColor: 'rgba(30, 41, 59, 0.5)', marginBottom: 8 }}>
+                      <strong style={{ fontSize: '0.85rem', color: '#60a5fa' }}>{labels[slot]}</strong>
+                      {items.map((it: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginTop: 4 }}>
+                          <span>{it.medicine_name} ({it.dosage})</span>
+                          <span style={{ color: '#94a3b8' }}>{it.timing_note}</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setCarePlanModal(null)}>Close</button>
+              </div>
             </motion.div>
           </div>
         )}

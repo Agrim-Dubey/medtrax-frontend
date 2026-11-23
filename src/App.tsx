@@ -23,6 +23,7 @@ import Prescriptions from './pages/Prescriptions';
 import Community from './pages/Community';
 import Chat from './pages/Chat';
 import VideoConsultation from './pages/VideoConsultation';
+import AIAgentsHub from './pages/AIAgentsHub';
 
 function AuthRedirect({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, user, loading } = useAuth();
@@ -54,6 +55,7 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<DoctorDashboard />} />
             <Route path="appointments" element={<DoctorAppointments />} />
+            <Route path="ai-agents" element={<AIAgentsHub />} />
             <Route path="video/:appointmentId" element={<VideoConsultation />} />
             <Route path="chat" element={<Chat />} />
             <Route path="prescriptions" element={<Prescriptions />} />
@@ -65,6 +67,7 @@ export default function App() {
             <Route index element={<Navigate to="dashboard" replace />} />
             <Route path="dashboard" element={<PatientDashboard />} />
             <Route path="appointments" element={<PatientAppointments />} />
+            <Route path="ai-agents" element={<AIAgentsHub />} />
             <Route path="video/:appointmentId" element={<VideoConsultation />} />
             <Route path="chat" element={<Chat />} />
             <Route path="prescriptions" element={<Prescriptions />} />

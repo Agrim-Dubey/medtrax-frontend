@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Calendar, User, FileText, Users, LogOut, Heart, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Calendar, User, FileText, Users, LogOut, Heart, MessageSquare, Sparkles } from 'lucide-react';
 import NotificationDropdown from './NotificationDropdown';
 import Badge from './Badge';
 
@@ -18,6 +18,7 @@ export default function Sidebar() {
   const doctorLinks = [
     { to: `${prefix}/dashboard`, icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: `${prefix}/appointments`, icon: <Calendar size={20} />, label: 'Appointments' },
+    { to: `${prefix}/ai-agents`, icon: <Sparkles size={20} />, label: 'AI Clinical Suite' },
     { to: `${prefix}/chat`, icon: <MessageSquare size={20} />, label: 'Messages' },
     { to: `${prefix}/prescriptions`, icon: <FileText size={20} />, label: 'Prescriptions' },
     { to: `${prefix}/community`, icon: <Users size={20} />, label: 'Community' },
@@ -27,6 +28,7 @@ export default function Sidebar() {
   const patientLinks = [
     { to: `${prefix}/dashboard`, icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
     { to: `${prefix}/appointments`, icon: <Calendar size={20} />, label: 'Appointments' },
+    { to: `${prefix}/ai-agents`, icon: <Sparkles size={20} />, label: 'AI Health Suite' },
     { to: `${prefix}/chat`, icon: <MessageSquare size={20} />, label: 'Messages' },
     { to: `${prefix}/prescriptions`, icon: <FileText size={20} />, label: 'Prescriptions' },
     { to: `${prefix}/community`, icon: <Users size={20} />, label: 'Community' },

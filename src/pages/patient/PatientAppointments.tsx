@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Plus, Video, MessageSquare, Search } from 'lucide-react';
+import { Calendar, Plus, Video, MessageSquare, Search, HeartPulse, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { appointmentsAPI } from '../../api/appointments';
+import { aiAPI, type SymptomTriageResult } from '../../api/ai';
 import { getWebSocketUrl } from '../../utils/websocket';
 import { useDebounce } from '../../hooks/useDebounce';
 import Badge from '../../components/Badge';
@@ -13,7 +14,7 @@ import Tabs from '../../components/Tabs';
 
 export default function PatientAppointments() {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<'list' | 'book'>('list');
+  const [tab, setTab] = useState<'list' | 'book' | 'ai-triage'>('list');
   const [appointments, setAppointments] = useState<any[]>([]);
   const [doctors, setDoctors] = useState<any[]>([]);
   const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
@@ -27,6 +28,12 @@ export default function PatientAppointments() {
   const [doctorSearch, setDoctorSearch] = useState('');
   const debouncedDoctorSearch = useDebounce(doctorSearch, 300);
   const queueWsRef = useRef<WebSocket | null>(null);
+
+  // Embedded AI Triage State
+  const [triageSymptoms, setTriageSymptoms] = useState('');
+  const [triageSeverity, setTriageSeverity] = useState<'mild' | 'moderate' | 'severe'>('moderate');
+  const [triageLoading, setTriageLoading] = useState(false);
+  const [triageResult, setTriageResult] = useState<SymptomTriageResult | null>(null);
 
   const filteredDoctors = useMemo(() => {
     if (!debouncedDoctorSearch) return doctors;
@@ -94,6 +101,43 @@ export default function PatientAppointments() {
     setBooking(false);
   };
 
+  const handleRunTriage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!triageSymptoms.trim() || triageSymptoms.trim().length < 3) {
+      return toast.error('Describe your symptoms in at least 3 characters');
+    }
+    setTriageLoading(true);
+    setTriageResult(null);
+    try {
+      const res = await aiAPI.triageSymptoms({
+        symptoms: triageSymptoms.trim(),
+        severity: triageSeverity,
+      });
+      setTriageResult(res.data.data);
+      if (res.data.data.urgency_level === 'EMERGENCY') {
+        toast.error('EMERGENCY ALERT: Critical symptoms detected!', { duration: 5000 });
+      } else {
+        toast.success('Symptoms evaluated!');
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || 'Symptom evaluation failed');
+    } finally {
+      setTriageLoading(false);
+    }
+  };
+
+  const handleSelectDoctorFromTriage = (doc: any) => {
+    setSelectedDoctor({
+      id: doc.doctor_id,
+      full_name: doc.name,
+      specialization: doc.specialization,
+      city: doc.city,
+    });
+    setReason(`Symptoms: ${triageSymptoms}`);
+    setTab('book');
+    toast.success(`Selected ${doc.name}! Choose an appointment slot.`);
+  };
+
   if (loading) {
     return (
       <div>
@@ -121,10 +165,11 @@ export default function PatientAppointments() {
         <p>Book new visits and track pending consultations</p>
       </div>
 
-      <Tabs<'list' | 'book'>
+      <Tabs<'list' | 'book' | 'ai-triage'>
         tabs={[
           { id: 'list', label: 'My Appointments', icon: <Calendar size={15} />, badge: appointments.length },
           { id: 'book', label: 'Book Consultation', icon: <Plus size={15} /> },
+          { id: 'ai-triage', label: 'AI Symptom Checker', icon: <HeartPulse size={15} /> },
         ]}
         activeTab={tab}
         onChange={(t) => setTab(t)}
@@ -132,6 +177,36 @@ export default function PatientAppointments() {
 
       {tab === 'book' ? (
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          {/* AI Assistance Banner */}
+          <div
+            style={{
+              marginBottom: 18,
+              padding: '12px 16px',
+              borderRadius: 8,
+              background: 'linear-gradient(90deg, rgba(56, 189, 248, 0.1) 0%, rgba(99, 102, 241, 0.08) 100%)',
+              border: '1px solid rgba(56, 189, 248, 0.25)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 10,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Sparkles size={18} color="#38bdf8" />
+              <span style={{ fontSize: '0.85rem', color: '#e2e8f0' }}>
+                Unsure which specialist to pick? Let AI analyze your symptoms and suggest doctors.
+              </span>
+            </div>
+            <button
+              className="btn btn-secondary btn-sm"
+              onClick={() => setTab('ai-triage')}
+              style={{ fontSize: '0.78rem' }}
+            >
+              Run Symptom Checker
+            </button>
+          </div>
+
           <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 20 }}>Book an Appointment</h2>
           <div className="form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -251,6 +326,110 @@ export default function PatientAppointments() {
           <button className="btn btn-primary btn-full btn-lg" onClick={handleBook} disabled={booking || !selectedDoctor || !date || !selectedSlot}>
             {booking ? <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }} /> : 'Request Appointment'}
           </button>
+        </motion.div>
+      ) : tab === 'ai-triage' ? (
+        <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <h2 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <HeartPulse size={20} color="#f43f5e" /> AI Symptom Checker & Doctor Routing
+          </h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: 20 }}>
+            Enter what you're feeling to detect any red-flag emergency symptoms and find matching doctors.
+          </p>
+
+          <form onSubmit={handleRunTriage}>
+            <div className="form-group">
+              <label className="form-label">Symptoms *</label>
+              <textarea
+                className="form-textarea"
+                rows={3}
+                placeholder="Describe your symptoms (e.g. sharp headache, mild fever, dry cough)..."
+                value={triageSymptoms}
+                onChange={e => setTriageSymptoms(e.target.value)}
+                required
+              />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div>
+                <label className="form-label">Severity</label>
+                <select
+                  className="form-input"
+                  value={triageSeverity}
+                  onChange={(e: any) => setTriageSeverity(e.target.value)}
+                >
+                  <option value="mild">Mild (Noticeable)</option>
+                  <option value="moderate">Moderate (Interferes with day)</option>
+                  <option value="severe">Severe (Intense)</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <button type="submit" className="btn btn-primary btn-full" disabled={triageLoading}>
+                  {triageLoading ? 'Evaluating...' : 'Analyze Symptoms'}
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {triageResult && (
+            <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border-primary)' }}>
+              {triageResult.seek_immediate_care && (
+                <div style={{ padding: 12, borderRadius: 8, background: 'rgba(239,68,68,0.15)', border: '1px solid #ef4444', marginBottom: 16 }}>
+                  <strong style={{ color: '#fca5a5' }}>EMERGENCY RED FLAG:</strong>
+                  <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#fee2e2' }}>
+                    Critical symptoms detected. Please call emergency services (911/112) or proceed to the nearest emergency department immediately.
+                  </p>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <div>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Urgency Level</span>
+                  <h4 style={{ margin: '2px 0 0', fontSize: '1.05rem' }}>{triageResult.urgency_level}</h4>
+                </div>
+                <Badge variant={triageResult.urgency_level === 'EMERGENCY' ? 'danger' : 'primary'} size="sm">
+                  {triageResult.recommended_timeframe}
+                </Badge>
+              </div>
+
+              <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', lineHeight: 1.5, marginBottom: 16 }}>
+                {triageResult.clinical_guidance}
+              </p>
+
+              {triageResult.recommended_doctors?.length > 0 && (
+                <div>
+                  <h4 style={{ fontSize: '0.92rem', marginBottom: 10 }}>Recommended Specialists</h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {triageResult.recommended_doctors.map(doc => (
+                      <div
+                        key={doc.doctor_id}
+                        style={{
+                          padding: 12,
+                          borderRadius: 8,
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid var(--border-primary)',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <div>
+                          <strong>{doc.name}</strong>
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                            {doc.specialization} • {doc.city} {doc.average_rating ? `• ⭐ ${doc.average_rating.toFixed(1)}` : ''}
+                          </div>
+                        </div>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => handleSelectDoctorFromTriage(doc)}
+                        >
+                          Select & Book
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </motion.div>
       ) : (
         appointments.length === 0 ? (

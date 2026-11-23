@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Users, Clock, CheckCircle, Star, TrendingUp, Video, MessageSquare, Search } from 'lucide-react';
+import { Calendar, Users, Clock, CheckCircle, Star, TrendingUp, Video, MessageSquare, Search, Sparkles, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { doctorDashboardAPI } from '../../api/dashboard';
 import { useAuth } from '../../context/AuthContext';
@@ -110,6 +110,41 @@ export default function DoctorDashboard() {
           icon={<CheckCircle size={22} />}
           color="var(--success)"
         />
+      </div>
+
+      {/* AI Clinical Suite Banner */}
+      <div
+        style={{
+          marginBottom: 24,
+          padding: '16px 20px',
+          borderRadius: 12,
+          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
+          border: '1px solid rgba(99, 179, 237, 0.2)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Sparkles size={22} color="#60a5fa" />
+          <div>
+            <strong style={{ fontSize: '0.95rem', color: '#f8fafc', display: 'block' }}>
+              PharmaGuard Clinical Safety & SOAP Documentation AI
+            </strong>
+            <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+              Verify drug-drug interactions, patient allergy cross-reactivity, or auto-generate SOAP notes in seconds.
+            </span>
+          </div>
+        </div>
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={() => navigate('/doctor/ai-agents')}
+          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+        >
+          Open AI Clinical Suite <ChevronRight size={14} />
+        </button>
       </div>
 
       <div className="content-grid">
