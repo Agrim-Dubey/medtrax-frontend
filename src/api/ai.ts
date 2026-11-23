@@ -231,3 +231,4 @@ export const aiAPI = {
   getAppointmentAssistant: (data: AppointmentAssistantRequest = {}) =>
     api.post<{ success: boolean; data: AppointmentAssistantResult }>('/api/ai/appointment-assistant/', data),
 };
+
