@@ -22,7 +22,7 @@ export default function CompleteProfile() {
     first_name: '',
     last_name: '',
     date_of_birth: '',
-    gender: 'male',
+    gender: 'M',
     blood_group: 'O+',
     city: '',
     phone_number: '',
@@ -96,6 +96,22 @@ export default function CompleteProfile() {
         cleanForm.years_of_experience = cleanForm.years_of_experience
           ? parseInt(cleanForm.years_of_experience, 10)
           : 0;
+      }
+      if (cleanForm.gender) {
+        const g = String(cleanForm.gender).toLowerCase();
+        cleanForm.gender = g.startsWith('m') ? 'M' : g.startsWith('f') ? 'F' : 'O';
+      }
+      if (cleanForm.phone_number) {
+        cleanForm.phone_number = cleanForm.phone_number.replace(/[\s\-()]/g, '');
+        if (cleanForm.phone_number.startsWith('+')) {
+          cleanForm.phone_number = cleanForm.phone_number.slice(1);
+        }
+      }
+      if (cleanForm.emergency_contact) {
+        cleanForm.emergency_contact = cleanForm.emergency_contact.replace(/[\s\-()]/g, '');
+        if (cleanForm.emergency_contact.startsWith('+')) {
+          cleanForm.emergency_contact = cleanForm.emergency_contact.slice(1);
+        }
       }
 
       const res = await apiCall(cleanForm);
@@ -202,9 +218,9 @@ export default function CompleteProfile() {
                   value={form.gender}
                   onChange={e => set('gender', e.target.value)}
                 >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
+                  <option value="M">Male</option>
+                  <option value="F">Female</option>
+                  <option value="O">Other</option>
                 </select>
               </div>
 
