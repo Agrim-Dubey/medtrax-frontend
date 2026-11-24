@@ -4,21 +4,28 @@ import { motion } from 'framer-motion';
 import { RotateCcw, ArrowLeft, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ThreeBackground from '../../components/ThreeBackground';
+import ErrorAlert from '../../components/ErrorAlert';
 import { authAPI } from '../../api/auth';
+import { parseApiError } from '../../utils/errorParser';
+import type { ParsedError } from '../../utils/errorParser';
 
 export default function VerifyOTP() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
+  const [formAlert, setFormAlert] = useState<ParsedError | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const navigate = useNavigate();
-  const email = sessionStorage.getItem('medtrax_pending_email') || '';
+  const email = sessionStorage.getItem('medtrax_pending_email') || localStorage.getItem('medtrax_pending_email') || '';
 
   useEffect(() => {
     if (!email) {
+      toast.error('No pending verification found. Please sign up or sign in.');
       navigate('/signup');
       return;
     }
+    sessionStorage.setItem('medtrax_pending_email', email);
+    localStorage.setItem('medtrax_pending_email', email);
     inputRefs.current[0]?.focus();
   }, [email, navigate]);
 
@@ -88,6 +95,7 @@ export default function VerifyOTP() {
       return toast.error('Please enter the complete 6-digit code');
     }
     setLoading(true);
+    setFormAlert(null);
     try {
       const res = await authAPI.verifySignupOTP({ email, otp: otpStr });
       if (res.data.success) {
@@ -95,8 +103,9 @@ export default function VerifyOTP() {
         navigate('/complete-profile');
       }
     } catch (err: any) {
-      const msg = err.response?.data?.error || err.response?.data?.detail || 'Invalid or expired OTP code';
-      toast.error(msg);
+      const parsed = parseApiError(err);
+      setFormAlert(parsed);
+      toast.error(parsed.message);
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } finally {
@@ -106,6 +115,7 @@ export default function VerifyOTP() {
 
   const handleResend = async () => {
     if (countdown > 0) return;
+    setFormAlert(null);
     try {
       await authAPI.resendSignupOTP({ email });
       toast.success('Fresh verification code sent!');
@@ -113,7 +123,9 @@ export default function VerifyOTP() {
       setOtp(['', '', '', '', '', '']);
       inputRefs.current[0]?.focus();
     } catch (err: any) {
-      toast.error(err.response?.data?.error || 'Failed to resend code');
+      const parsed = parseApiError(err);
+      setFormAlert(parsed);
+      toast.error(parsed.message);
     }
   };
 
@@ -146,11 +158,30 @@ export default function VerifyOTP() {
         </div>
 
         <h1 style={{ textAlign: 'center', fontSize: '1.6rem', fontWeight: 800 }}>Verify Your Email</h1>
-        <p className="auth-subtitle" style={{ textAlign: 'center', marginBottom: 24 }}>
+        <p className="auth-subtitle" style={{ textAlign: 'center', marginBottom: 20 }}>
           Enter the 6-digit security code sent to
           <br />
           <strong style={{ color: 'var(--accent)', fontSize: '0.95rem' }}>{email}</strong>
         </p>
+
+        {formAlert && (
+          <div style={{ marginBottom: 20 }}>
+            <ErrorAlert
+              title="Verification Error"
+              message={formAlert.message}
+              fieldErrors={formAlert.fieldErrors}
+              onClose={() => setFormAlert(null)}
+              action={
+                countdown === 0
+                  ? {
+                      label: 'Send New Code Now',
+                      onClick: handleResend,
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        )}
 
         <div
           className="otp-inputs"

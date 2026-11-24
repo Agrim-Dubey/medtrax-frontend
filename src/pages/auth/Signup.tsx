@@ -6,8 +6,11 @@ import toast from 'react-hot-toast';
 import ThreeBackground from '../../components/ThreeBackground';
 import Input from '../../components/Input';
 import PasswordInput from '../../components/PasswordInput';
+import ErrorAlert from '../../components/ErrorAlert';
 import { authAPI } from '../../api/auth';
 import { validation } from '../../utils/validation';
+import { parseApiError } from '../../utils/errorParser';
+import type { ParsedError } from '../../utils/errorParser';
 
 export default function Signup() {
   const [step, setStep] = useState<'role' | 'form'>('role');
@@ -18,6 +21,7 @@ export default function Signup() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formAlert, setFormAlert] = useState<ParsedError | null>(null);
   const navigate = useNavigate();
 
   const validate = () => {
@@ -53,6 +57,7 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormAlert(null);
     if (!validate()) return;
     setLoading(true);
 
@@ -65,20 +70,27 @@ export default function Signup() {
       });
 
       if (res.data.success) {
-        sessionStorage.setItem('medtrax_pending_email', email.trim().toLowerCase());
+        const pendingEmail = email.trim().toLowerCase();
+        sessionStorage.setItem('medtrax_pending_email', pendingEmail);
         sessionStorage.setItem('medtrax_pending_role', role);
-        toast.success('Verification OTP sent to your email!');
-        navigate('/verify-otp');
+        localStorage.setItem('medtrax_pending_email', pendingEmail);
+        localStorage.setItem('medtrax_pending_role', role);
+
+        if (res.data.next_step === 'complete_profile' || res.data.is_verified) {
+          toast('Your email is already verified! Please complete your profile.', { icon: '📋' });
+          navigate('/complete-profile');
+        } else {
+          toast.success('Verification OTP sent to your email!');
+          navigate('/verify-otp');
+        }
       }
     } catch (err: any) {
-      const errs = err.response?.data?.errors;
-      const msg =
-        errs?.email?.[0] ||
-        errs?.password1?.[0] ||
-        errs?.non_field_errors?.[0] ||
-        err.response?.data?.error ||
-        'Registration failed. Please check your information.';
-      toast.error(msg);
+      const parsed = parseApiError(err);
+      setFormAlert(parsed);
+      if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
+        setErrors((p) => ({ ...p, ...parsed.fieldErrors }));
+      }
+      toast.error(parsed.message);
     } finally {
       setLoading(false);
     }
@@ -253,6 +265,25 @@ export default function Signup() {
         <p className="auth-subtitle" style={{ textAlign: 'center', marginBottom: 20 }}>
           Set your credentials to access your clinical dashboard
         </p>
+
+        {formAlert && (
+          <div style={{ marginBottom: 16 }}>
+            <ErrorAlert
+              title="Registration Notice"
+              message={formAlert.message}
+              fieldErrors={formAlert.fieldErrors}
+              onClose={() => setFormAlert(null)}
+              action={
+                formAlert.message.toLowerCase().includes('already registered')
+                  ? {
+                      label: 'Sign In to Your Account',
+                      onClick: () => navigate('/login'),
+                    }
+                  : undefined
+              }
+            />
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
           <Input

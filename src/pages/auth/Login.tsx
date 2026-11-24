@@ -6,9 +6,12 @@ import toast from 'react-hot-toast';
 import ThreeBackground from '../../components/ThreeBackground';
 import Input from '../../components/Input';
 import PasswordInput from '../../components/PasswordInput';
+import ErrorAlert from '../../components/ErrorAlert';
 import { authAPI } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { validation } from '../../utils/validation';
+import { parseApiError } from '../../utils/errorParser';
+import type { ParsedError } from '../../utils/errorParser';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -16,6 +19,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [formAlert, setFormAlert] = useState<ParsedError | null>(null);
   const navigate = useNavigate();
   const { login } = useAuth();
 
@@ -47,6 +51,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormAlert(null);
     if (!validate()) return;
     setLoading(true);
 
@@ -61,8 +66,12 @@ export default function Login() {
       const data = res.data;
       if (data.success) {
         if (data.is_profile_complete === false) {
-          sessionStorage.setItem('medtrax_pending_email', data.email || email);
-          sessionStorage.setItem('medtrax_pending_role', data.role);
+          const userEmail = data.email || email.trim().toLowerCase();
+          const userRole = data.role || 'patient';
+          sessionStorage.setItem('medtrax_pending_email', userEmail);
+          sessionStorage.setItem('medtrax_pending_role', userRole);
+          localStorage.setItem('medtrax_pending_email', userEmail);
+          localStorage.setItem('medtrax_pending_role', userRole);
           toast('Please complete your profile to continue.', { icon: '📋' });
           navigate('/complete-profile');
           return;
@@ -79,14 +88,29 @@ export default function Login() {
         navigate(data.user.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard');
       }
     } catch (err: any) {
-      const d = err.response?.data;
-      const msg =
-        d?.errors?.non_field_errors?.[0] ||
-        d?.error ||
-        d?.errors?.email?.[0] ||
-        d?.detail ||
-        'Invalid credentials. Please verify your email and password.';
-      toast.error(msg);
+      const parsed = parseApiError(err);
+      
+      // If backend returned incomplete profile via error response
+      if (parsed.isProfileIncomplete || err.response?.data?.is_profile_complete === false) {
+        const userEmail = parsed.email || err.response?.data?.email || email.trim().toLowerCase();
+        const userRole = parsed.role || err.response?.data?.role || 'patient';
+        sessionStorage.setItem('medtrax_pending_email', userEmail);
+        sessionStorage.setItem('medtrax_pending_role', userRole);
+        localStorage.setItem('medtrax_pending_email', userEmail);
+        localStorage.setItem('medtrax_pending_role', userRole);
+        toast('Please complete your profile to continue.', { icon: '📋' });
+        navigate('/complete-profile');
+        return;
+      }
+
+      setFormAlert(parsed);
+      if (parsed.fieldErrors?.email) {
+        setErrors((p) => ({ ...p, email: parsed.fieldErrors.email }));
+      }
+      if (parsed.fieldErrors?.password) {
+        setErrors((p) => ({ ...p, password: parsed.fieldErrors.password }));
+      }
+      toast.error(parsed.message);
     } finally {
       setLoading(false);
     }
@@ -129,6 +153,39 @@ export default function Login() {
         <p className="auth-subtitle" style={{ textAlign: 'center', marginBottom: 24 }}>
           Access your MedTrax clinical portal
         </p>
+
+        {formAlert && (
+          <ErrorAlert
+            title={formAlert.isUnverified ? 'Verification Required' : 'Authentication Error'}
+            message={formAlert.message}
+            variant={formAlert.isUnverified ? 'warning' : 'danger'}
+            actionLabel={
+              formAlert.isUnverified
+                ? 'Verify Email with OTP'
+                : formAlert.isProfileIncomplete
+                ? 'Complete Profile Now'
+                : undefined
+            }
+            onAction={
+              formAlert.isUnverified
+                ? () => {
+                    const targetEmail = formAlert.email || email.trim().toLowerCase();
+                    sessionStorage.setItem('medtrax_pending_email', targetEmail);
+                    localStorage.setItem('medtrax_pending_email', targetEmail);
+                    navigate('/verify-otp');
+                  }
+                : formAlert.isProfileIncomplete
+                ? () => {
+                    const targetEmail = formAlert.email || email.trim().toLowerCase();
+                    sessionStorage.setItem('medtrax_pending_email', targetEmail);
+                    localStorage.setItem('medtrax_pending_email', targetEmail);
+                    navigate('/complete-profile');
+                  }
+                : undefined
+            }
+            onDismiss={() => setFormAlert(null)}
+          />
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
           <Input

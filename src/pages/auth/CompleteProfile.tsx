@@ -5,17 +5,21 @@ import { Heart, User, Calendar, MapPin, Phone, Briefcase, Award, Shield, PhoneCa
 import toast from 'react-hot-toast';
 import ThreeBackground from '../../components/ThreeBackground';
 import Input from '../../components/Input';
+import ErrorAlert from '../../components/ErrorAlert';
 import { authAPI } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import { validation } from '../../utils/validation';
+import { parseApiError } from '../../utils/errorParser';
+import type { ParsedError } from '../../utils/errorParser';
 
 export default function CompleteProfile() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const email = sessionStorage.getItem('medtrax_pending_email') || '';
-  const role = sessionStorage.getItem('medtrax_pending_role') || '';
+  const email = sessionStorage.getItem('medtrax_pending_email') || localStorage.getItem('medtrax_pending_email') || '';
+  const role = sessionStorage.getItem('medtrax_pending_role') || localStorage.getItem('medtrax_pending_role') || '';
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formAlert, setFormAlert] = useState<ParsedError | null>(null);
 
   const [form, setForm] = useState<Record<string, any>>({
     email,
@@ -36,7 +40,14 @@ export default function CompleteProfile() {
 
   useEffect(() => {
     if (!email || !role) {
+      toast.error('No pending registration found. Please sign up or log in.');
       navigate('/signup');
+    } else {
+      // Keep storage in sync
+      sessionStorage.setItem('medtrax_pending_email', email);
+      sessionStorage.setItem('medtrax_pending_role', role);
+      localStorage.setItem('medtrax_pending_email', email);
+      localStorage.setItem('medtrax_pending_role', role);
     }
   }, [email, role, navigate]);
 
@@ -83,6 +94,7 @@ export default function CompleteProfile() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormAlert(null);
     if (!validate()) {
       toast.error('Please resolve the highlighted errors');
       return;
@@ -125,17 +137,18 @@ export default function CompleteProfile() {
         login(res.data.user);
         sessionStorage.removeItem('medtrax_pending_email');
         sessionStorage.removeItem('medtrax_pending_role');
+        localStorage.removeItem('medtrax_pending_email');
+        localStorage.removeItem('medtrax_pending_role');
         toast.success('Profile onboarded successfully!');
         navigate(role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard');
       }
     } catch (err: any) {
-      const respErrors = err.response?.data?.errors;
-      if (respErrors) {
-        const first = Object.values(respErrors).flat()[0];
-        toast.error(typeof first === 'string' ? first : 'Validation error');
-      } else {
-        toast.error(err.response?.data?.error || 'Failed to complete profile onboarding');
+      const parsed = parseApiError(err);
+      setFormAlert(parsed);
+      if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
+        setErrors(prev => ({ ...prev, ...parsed.fieldErrors }));
       }
+      toast.error(parsed.message);
     } finally {
       setLoading(false);
     }
@@ -175,6 +188,17 @@ export default function CompleteProfile() {
             {role}
           </span>
         </p>
+
+        {formAlert && (
+          <div style={{ marginBottom: 20 }}>
+            <ErrorAlert
+              title="Profile Submission Error"
+              message={formAlert.message}
+              fieldErrors={formAlert.fieldErrors}
+              onClose={() => setFormAlert(null)}
+            />
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} noValidate>
           {/* Section: Personal Information */}
