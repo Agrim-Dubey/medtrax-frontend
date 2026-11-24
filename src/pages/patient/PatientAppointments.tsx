@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Plus, Video, MessageSquare, Search, HeartPulse, Sparkles } from 'lucide-react';
+import { Calendar, Plus, Video, MessageSquare, Search, HeartPulse, Sparkles, Stethoscope } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { appointmentsAPI } from '../../api/appointments';
@@ -11,6 +11,28 @@ import Badge from '../../components/Badge';
 import EmptyState from '../../components/EmptyState';
 import { TableRowSkeleton } from '../../components/Skeleton';
 import Tabs from '../../components/Tabs';
+
+function getInitials(name?: string): string {
+  if (!name) return 'DR';
+  const clean = name.replace(/^dr\.?\s+/i, '').trim();
+  const parts = clean.split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return clean.slice(0, 2).toUpperCase() || 'DR';
+}
+
+const AVATAR_COLORS = [
+  'linear-gradient(135deg, #0284c7, #38bdf8)',
+  'linear-gradient(135deg, #059669, #34d399)',
+  'linear-gradient(135deg, #7c3aed, #a78bfa)',
+  'linear-gradient(135deg, #d97706, #fbbf24)',
+  'linear-gradient(135deg, #e11d48, #f43f5e)',
+];
+
+function getAvatarBg(name?: string): string {
+  if (!name) return AVATAR_COLORS[0];
+  const charCode = name.charCodeAt(0) + (name.charCodeAt(1) || 0);
+  return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
+}
 
 export default function PatientAppointments() {
   const navigate = useNavigate();
@@ -447,43 +469,99 @@ export default function PatientAppointments() {
             onAction={() => setTab('book')}
           />
         ) : (
-        <motion.div className="glass-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <motion.div className="glass-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ overflowX: 'auto' }}>
           <table className="data-table">
-            <thead><tr><th>Doctor</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Physician / Specialist</th>
+                <th>Date & Time</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
             <tbody>
-              {appointments.map((a: any) => (
-                <tr key={a.id}>
-                  <td><strong>{a.doctor_name || `Dr. ${a.doctor?.first_name || ''}`}</strong><br/><span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{a.specialization || a.doctor?.specialization || ''}</span></td>
-                  <td>{a.appointment_date}</td>
-                  <td>{a.appointment_time_formatted || a.appointment_time}</td>
-                  <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.reason || '—'}</td>
-                  <td><Badge variant={a.status} pulse={a.status === 'confirmed'}>{a.status}</Badge></td>
-                  <td>
-                    {a.status === 'confirmed' ? (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                          onClick={() => navigate(`/patient/video/${a.id}`)}
-                          title="Join Video Consultation"
+              {appointments.map((a: any) => {
+                const docName = a.doctor_name || `Dr. ${a.doctor?.first_name || ''} ${a.doctor?.last_name || ''}`.trim() || 'Attending Physician';
+                const initials = getInitials(docName);
+                const avatarBg = getAvatarBg(docName);
+                const spec = a.specialization || a.doctor?.specialization || 'Clinical Specialist';
+
+                return (
+                  <tr key={a.id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div
+                          style={{
+                            width: 34,
+                            height: 34,
+                            borderRadius: 10,
+                            background: avatarBg,
+                            color: '#04101e',
+                            fontWeight: 800,
+                            fontSize: '0.78rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                          }}
                         >
-                          <Video size={13} /> Video
-                        </button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                          onClick={() => navigate('/patient/chat')}
-                          title="Open Chat"
-                        >
-                          <MessageSquare size={13} />
-                        </button>
+                          {initials}
+                        </div>
+                        <div>
+                          <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                            {docName}
+                          </strong>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                            <Stethoscope size={11} color="#38bdf8" />
+                            <span style={{ fontSize: '0.74rem', color: '#94a3b8' }}>{spec}</span>
+                          </div>
+                        </div>
                       </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td>
+                      <div style={{ fontSize: '0.82rem', fontFamily: 'var(--font-mono)', color: '#38bdf8', fontWeight: 600 }}>
+                        {a.appointment_date}
+                      </div>
+                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                        {a.appointment_time_formatted || a.appointment_time}
+                      </div>
+                    </td>
+                    <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem', color: '#94a3b8' }}>
+                      {a.reason || 'General Consultation'}
+                    </td>
+                    <td>
+                      <Badge variant={a.status} pulse={a.status === 'confirmed'}>
+                        {a.status}
+                      </Badge>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {a.status === 'confirmed' ? (
+                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ padding: '5px 10px', fontSize: '0.74rem', gap: 5 }}
+                            onClick={() => navigate(`/patient/video/${a.id}`)}
+                            title="Join Video Consultation"
+                          >
+                            <Video size={13} /> Video
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '5px 10px', fontSize: '0.74rem', gap: 5 }}
+                            onClick={() => navigate('/patient/chat')}
+                            title="Open Doctor Chat"
+                          >
+                            <MessageSquare size={13} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#64748b', fontSize: '0.75rem' }}>—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </motion.div>

@@ -7,7 +7,29 @@ import { appointmentsAPI } from '../../api/appointments';
 import { useDebounce } from '../../hooks/useDebounce';
 import Tabs from '../../components/Tabs';
 import Badge from '../../components/Badge';
+import EmptyState from '../../components/EmptyState';
 import ConfirmDialog from '../../components/ConfirmDialog';
+
+function getInitials(name?: string): string {
+  if (!name) return 'PT';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+const AVATAR_COLORS = [
+  'linear-gradient(135deg, #0284c7, #38bdf8)',
+  'linear-gradient(135deg, #059669, #34d399)',
+  'linear-gradient(135deg, #7c3aed, #a78bfa)',
+  'linear-gradient(135deg, #d97706, #fbbf24)',
+  'linear-gradient(135deg, #e11d48, #f43f5e)',
+];
+
+function getAvatarBg(name?: string): string {
+  if (!name) return AVATAR_COLORS[0];
+  const charCode = name.charCodeAt(0) + (name.charCodeAt(1) || 0);
+  return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
+}
 
 export default function DoctorAppointments() {
   const navigate = useNavigate();
@@ -106,67 +128,196 @@ export default function DoctorAppointments() {
       />
 
       {tab === 'requests' && (
-        filteredRequests.length === 0 ? <div className="empty-state"><Clock size={48} /><h3>No pending requests</h3></div> :
-        <div style={{ display: 'grid', gap: 12 }}>
-          {filteredRequests.map((r: any, i: number) => (
-            <motion.div key={r.id} className="glass-card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
-              <div>
-                <strong>{r.patient_name}</strong>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{r.appointment_date} at {r.appointment_time_formatted || r.appointment_time}</p>
-                {r.reason && <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 4 }}>{r.reason}</p>}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-success btn-sm" onClick={() => handleAccept(r.id)}><Check size={16} /> Accept</button>
-                <button className="btn btn-danger btn-sm" onClick={() => setRejectTargetId(r.id)}><X size={16} /> Reject</button>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+        filteredRequests.length === 0 ? (
+          <div className="glass-card" style={{ padding: 40, textAlign: 'center' }}>
+            <EmptyState
+              icon={<Clock size={36} />}
+              title="No pending requests"
+              description="You have reviewed all incoming consultation requests. New requests will appear here immediately."
+            />
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gap: 14 }}>
+            {filteredRequests.map((r: any, i: number) => {
+              const initials = getInitials(r.patient_name);
+              const avatarBg = getAvatarBg(r.patient_name);
+
+              return (
+                <motion.div
+                  key={r.id}
+                  className="glass-card"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 16,
+                    padding: '18px 22px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: avatarBg,
+                        color: '#04101e',
+                        fontWeight: 800,
+                        fontSize: '0.85rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {initials}
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: '0.95rem', color: '#f8fafc', display: 'block' }}>
+                        {r.patient_name}
+                      </strong>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                        <span style={{ fontSize: '0.78rem', color: '#38bdf8', fontFamily: 'var(--font-mono)' }}>
+                          {r.appointment_date} at {r.appointment_time_formatted || r.appointment_time}
+                        </span>
+                        <Badge variant="pending">Pending Review</Badge>
+                      </div>
+                      {r.reason && (
+                        <p style={{ fontSize: '0.82rem', color: '#94a3b8', margin: '6px 0 0', lineHeight: 1.4 }}>
+                          Reason: {r.reason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleAccept(r.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff' }}
+                    >
+                      <Check size={15} /> Accept Request
+                    </button>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => setRejectTargetId(r.id)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderColor: '#ef4444', color: '#ef4444' }}
+                    >
+                      <X size={15} /> Decline
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )
       )}
 
       {tab === 'all' && (
-        filteredAppointments.length === 0 ? <div className="empty-state"><Calendar size={48} /><h3>No appointments yet</h3></div> :
-        <motion.div className="glass-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <table className="data-table">
-            <thead><tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody>
-              {filteredAppointments.map((a: any) => (
-                <tr key={a.id}>
-                  <td><strong>{a.patient_name}</strong></td>
-                  <td>{a.appointment_date}</td>
-                  <td>{a.appointment_time_formatted || a.appointment_time}</td>
-                  <td style={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.reason || '—'}</td>
-                  <td><Badge variant={a.status} pulse={a.status === 'confirmed'}>{a.status}</Badge></td>
-                  <td>
-                    {a.status === 'confirmed' ? (
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className="btn btn-primary btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                          onClick={() => navigate(`/doctor/video/${a.id}`)}
-                          title="Join Video Consultation"
-                        >
-                          <Video size={13} /> Video
-                        </button>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          style={{ padding: '4px 8px', fontSize: '0.75rem' }}
-                          onClick={() => navigate('/doctor/chat')}
-                          title="Open Chat"
-                        >
-                          <MessageSquare size={13} />
-                        </button>
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>—</span>
-                    )}
-                  </td>
+        filteredAppointments.length === 0 ? (
+          <div className="glass-card" style={{ padding: 40, textAlign: 'center' }}>
+            <EmptyState
+              icon={<Calendar size={36} />}
+              title="No consultations found"
+              description={searchQuery ? "Try refining your search term." : "No scheduled consultations recorded yet."}
+            />
+          </div>
+        ) : (
+          <motion.div className="glass-card" initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ overflowX: 'auto' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Date & Time</th>
+                  <th>Clinical Reason</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </motion.div>
+              </thead>
+              <tbody>
+                {filteredAppointments.map((a: any) => {
+                  const initials = getInitials(a.patient_name);
+                  const avatarBg = getAvatarBg(a.patient_name);
+
+                  return (
+                    <tr key={a.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 8,
+                              background: avatarBg,
+                              color: '#04101e',
+                              fontWeight: 800,
+                              fontSize: '0.75rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {initials}
+                          </div>
+                          <div>
+                            <strong style={{ fontSize: '0.88rem', color: '#f8fafc', display: 'block' }}>
+                              {a.patient_name}
+                            </strong>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.82rem', fontFamily: 'var(--font-mono)', color: '#cbd5e1' }}>
+                          {a.appointment_date}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          {a.appointment_time_formatted || a.appointment_time}
+                        </div>
+                      </td>
+                      <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.82rem', color: '#94a3b8' }}>
+                        {a.reason || 'General Follow-up'}
+                      </td>
+                      <td>
+                        <Badge variant={a.status} pulse={a.status === 'confirmed'}>
+                          {a.status}
+                        </Badge>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        {a.status === 'confirmed' ? (
+                          <div style={{ display: 'inline-flex', gap: 6 }}>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              style={{ padding: '4px 10px', fontSize: '0.74rem', gap: 5 }}
+                              onClick={() => navigate(`/doctor/video/${a.id}`)}
+                              title="Join Video Consultation"
+                            >
+                              <Video size={13} /> Video
+                            </button>
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              style={{ padding: '4px 10px', fontSize: '0.74rem', gap: 5 }}
+                              onClick={() => navigate('/doctor/chat')}
+                              title="Open Chat"
+                            >
+                              <MessageSquare size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#64748b', fontSize: '0.75rem' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </motion.div>
+        )
       )}
 
       <ConfirmDialog

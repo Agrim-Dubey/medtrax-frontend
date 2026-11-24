@@ -1,6 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, CheckCircle, AlertCircle, Video, MessageSquare, ChevronRight, HeartPulse } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  Video,
+  MessageSquare,
+  ChevronRight,
+  HeartPulse,
+  Activity,
+  Stethoscope,
+  Radio
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { patientDashboardAPI } from '../../api/dashboard';
 import { useAuth } from '../../context/AuthContext';
@@ -9,7 +21,28 @@ import EmptyState from '../../components/EmptyState';
 import StatCard from '../../components/StatCard';
 import Badge from '../../components/Badge';
 import VitalsIndicator from '../../components/VitalsIndicator';
-import { Activity } from 'lucide-react';
+
+function getInitials(name?: string): string {
+  if (!name) return 'DR';
+  const clean = name.replace(/^dr\.?\s+/i, '').trim();
+  const parts = clean.split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return clean.slice(0, 2).toUpperCase() || 'DR';
+}
+
+const AVATAR_COLORS = [
+  'linear-gradient(135deg, #0284c7, #38bdf8)',
+  'linear-gradient(135deg, #059669, #34d399)',
+  'linear-gradient(135deg, #7c3aed, #a78bfa)',
+  'linear-gradient(135deg, #d97706, #fbbf24)',
+  'linear-gradient(135deg, #e11d48, #f43f5e)',
+];
+
+function getAvatarBg(name?: string): string {
+  if (!name) return AVATAR_COLORS[0];
+  const charCode = name.charCodeAt(0) + (name.charCodeAt(1) || 0);
+  return AVATAR_COLORS[charCode % AVATAR_COLORS.length];
+}
 
 export default function PatientDashboard() {
   const { user } = useAuth();
@@ -163,52 +196,187 @@ export default function PatientDashboard() {
 
       <div className="content-grid">
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><Clock size={20} color="var(--accent)" /> Upcoming Appointments</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8, color: '#f8fafc' }}>
+              <Clock size={18} color="var(--accent)" /> Upcoming Consultations
+            </h2>
+            <button
+              type="button"
+              onClick={() => navigate('/patient/appointments')}
+              style={{ background: 'none', border: 'none', color: '#38bdf8', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              Manage all <ChevronRight size={13} />
+            </button>
+          </div>
+
           {upcoming.length === 0 ? (
             <EmptyState
               icon={<Calendar size={28} />}
               title="No upcoming consultations"
-              description="Book an appointment with a doctor anytime."
+              description="Schedule a new session with your doctor or clinical specialist anytime."
             />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {upcoming.map((a: any) => (
-                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)', flexWrap: 'wrap', gap: 8 }}>
-                  <div><strong style={{ fontSize: '0.88rem' }}>{a.doctor_name}</strong><p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{a.specialization || 'General'}</p></div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ textAlign: 'right' }}><p style={{ color: 'var(--accent)', fontSize: '0.82rem', fontFamily: 'var(--font-mono)' }}>{a.appointment_date || a.date}</p><p style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>{a.appointment_time_formatted || a.appointment_time || a.time}</p></div>
-                    {a.status === 'confirmed' && (
-                      <div style={{ display: 'flex', gap: 4 }}>
-                        <button className="btn btn-primary btn-sm" style={{ padding: '4px 8px' }} onClick={() => navigate(`/patient/video/${a.id}`)} title="Join Video">
-                          <Video size={13} />
-                        </button>
-                        <button className="btn btn-secondary btn-sm" style={{ padding: '4px 8px' }} onClick={() => navigate('/patient/chat')} title="Open Chat">
-                          <MessageSquare size={13} />
-                        </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {upcoming.map((a: any) => {
+                const initials = getInitials(a.doctor_name);
+                const avatarBg = getAvatarBg(a.doctor_name);
+
+                return (
+                  <div
+                    key={a.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '14px 16px',
+                      background: '#090d16',
+                      borderRadius: 12,
+                      border: '1px solid #1e293b',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 10,
+                          background: avatarBg,
+                          color: '#04101e',
+                          fontWeight: 800,
+                          fontSize: '0.8rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {initials}
                       </div>
-                    )}
+                      <div>
+                        <strong style={{ fontSize: '0.9rem', color: '#f8fafc', display: 'block' }}>
+                          {a.doctor_name?.startsWith('Dr') ? a.doctor_name : `Dr. ${a.doctor_name || 'Physician'}`}
+                        </strong>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                          <Stethoscope size={12} color="#38bdf8" />
+                          <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                            {a.specialization || 'Clinical Specialist'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ color: '#38bdf8', fontSize: '0.82rem', fontFamily: 'var(--font-mono)', margin: 0, fontWeight: 600 }}>
+                          {a.appointment_date || a.date}
+                        </p>
+                        <p style={{ color: '#64748b', fontSize: '0.74rem', margin: '2px 0 0' }}>
+                          {a.appointment_time_formatted || a.appointment_time || a.time}
+                        </p>
+                      </div>
+
+                      {a.status === 'confirmed' ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="btn btn-primary btn-sm"
+                            style={{ padding: '5px 10px', fontSize: '0.75rem', gap: 5 }}
+                            onClick={() => navigate(`/patient/video/${a.id}`)}
+                            title="Join HD Telehealth Session"
+                          >
+                            <Video size={13} />
+                            <span>Join</span>
+                          </button>
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            style={{ padding: '5px 10px', fontSize: '0.75rem', gap: 5 }}
+                            onClick={() => navigate('/patient/chat')}
+                            title="Open Doctor Chat"
+                          >
+                            <MessageSquare size={13} />
+                          </button>
+                        </div>
+                      ) : (
+                        <Badge variant={a.status}>{a.status}</Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </motion.div>
+
+        {/* Right side: Recent Visits History */}
         <motion.div className="glass-card" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}><CheckCircle size={20} color="var(--success)" /> Recent Visits</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8, color: '#f8fafc' }}>
+              <CheckCircle size={18} color="var(--success)" /> Clinical Visit History
+            </h2>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Archived records</span>
+          </div>
+
           {recent.length === 0 ? (
             <EmptyState
               icon={<CheckCircle size={28} />}
               title="No visit history yet"
-              description="Your completed consultations will be archived here."
+              description="Your completed clinical consultations and encounter summaries will be recorded here."
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {recent.map((a: any) => (
-                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'var(--bg-input)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-primary)' }}>
-                  <div><strong style={{ fontSize: '0.88rem' }}>{a.doctor_name}</strong><p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{a.specialization || 'General'}</p></div>
-                  <div style={{ textAlign: 'right' }}><p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>{a.appointment_date || a.date}</p><Badge variant={a.status}>{a.status}</Badge></div>
-                </div>
-              ))}
+              {recent.map((a: any) => {
+                const initials = getInitials(a.doctor_name);
+
+                return (
+                  <div
+                    key={a.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px 14px',
+                      background: '#090d16',
+                      borderRadius: 10,
+                      border: '1px solid #1e293b',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 8,
+                          background: 'rgba(52, 211, 153, 0.12)',
+                          color: '#34d399',
+                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {initials}
+                      </div>
+                      <div>
+                        <strong style={{ fontSize: '0.86rem', color: '#f8fafc', display: 'block' }}>
+                          {a.doctor_name?.startsWith('Dr') ? a.doctor_name : `Dr. ${a.doctor_name || 'Physician'}`}
+                        </strong>
+                        <span style={{ fontSize: '0.74rem', color: '#64748b' }}>
+                          {a.specialization || 'Consultation'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ color: '#94a3b8', fontSize: '0.78rem', margin: '0 0 3px', fontFamily: 'var(--font-mono)' }}>
+                        {a.appointment_date || a.date}
+                      </p>
+                      <Badge variant={a.status}>{a.status}</Badge>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </motion.div>
@@ -221,11 +389,22 @@ export default function PatientDashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Activity size={20} color="var(--accent)" /> Real-Time Health Vitals
-          </h2>
-          <Badge variant="success" pulse size="sm">Live Connected</Badge>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: 8, color: '#f8fafc' }}>
+              <Activity size={18} color="var(--accent)" /> Real-Time Physiological Telemetry HUD
+            </h2>
+            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+              Automated continuous vital signs monitoring stream
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', color: '#34d399', background: 'rgba(52, 211, 153, 0.1)', padding: '4px 10px', borderRadius: 9999, border: '1px solid rgba(52, 211, 153, 0.25)' }}>
+              <Radio size={12} className="animate-pulse" />
+              <span>Sensor Sync Active</span>
+            </div>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
