@@ -234,27 +234,208 @@ a:hover { color: #7dd3fc; }
 }
 .otp-inputs input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
 
-/* ─── Dashboard Layout ─── */
+/* ─── Dashboard Layout & Unified Topbar ─── */
 .dashboard-layout {
-  display: flex; min-height: 100vh;
-}
-.dashboard-content {
-  flex: 1; margin-left: var(--sidebar-width);
-  padding: 32px 36px; max-width: 100%;
+  display: flex;
+  min-height: 100vh;
   background: var(--bg-deep);
+  position: relative;
+}
+
+.dashboard-main-area {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-width: 0;
+  transition: margin-left 0.25s ease;
+}
+
+.dashboard-topnav {
+  position: sticky;
+  top: 0;
+  z-index: 35;
+  height: 64px;
+  background: rgba(10, 15, 30, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  gap: 16px;
+}
+
+.dashboard-topnav-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dashboard-hamburger-btn {
+  display: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 7px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.dashboard-hamburger-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+.dashboard-breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
+.breadcrumb-root {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.breadcrumb-separator {
+  color: var(--text-muted);
+  opacity: 0.6;
+}
+
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.dashboard-topnav-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.clinical-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(52, 211, 153, 0.08);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #34d399;
+}
+
+.status-indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399;
+  animation: pulse-glow 2s infinite;
+}
+
+.dashboard-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.dashboard-user-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 4px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-primary);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.dashboard-user-chip:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+}
+
+.chip-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.82rem;
+  color: #0a0e1a;
+}
+
+.chip-details {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.chip-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.chip-role {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: 28px 36px 48px;
+  max-width: 100%;
 }
 
 /* ─── Sidebar ─── */
 .sidebar {
   width: var(--sidebar-width); height: 100vh; position: fixed; left: 0; top: 0;
-  background: rgba(10, 15, 30, 0.95); backdrop-filter: blur(20px);
+  background: rgba(10, 15, 30, 0.96); backdrop-filter: blur(20px);
   border-right: 1px solid var(--border-primary);
   display: flex; flex-direction: column; z-index: 100;
   padding: 0;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .sidebar-logo {
-  display: flex; align-items: center; gap: 12px;
-  padding: 24px 24px 20px; border-bottom: 1px solid var(--border-primary);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 20px 18px; border-bottom: 1px solid var(--border-primary);
+}
+.sidebar-mobile-close {
+  display: none;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+}
+.sidebar-mobile-close:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  z-index: 95;
 }
 .sidebar-logo h2 {
   font-size: 1.3rem; font-weight: 800;
@@ -1198,16 +1379,29 @@ a:hover { color: #7dd3fc; }
 @media (max-width: 1024px) {
   .hospital-footer-inner { grid-template-columns: 1fr 1fr; gap: 30px; }
   .care-finder-grid { grid-template-columns: 1fr 1fr; }
+  .dashboard-main-area { margin-left: 0; }
+  .dashboard-topnav { padding: 0 20px; }
+  .dashboard-hamburger-btn { display: flex; }
+  .sidebar {
+    transform: translateX(-100%);
+    box-shadow: none;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    box-shadow: 10px 0 40px rgba(0, 0, 0, 0.8);
+  }
+  .sidebar-mobile-close { display: flex; }
 }
 @media (max-width: 768px) {
   .mobile-hamburger-btn { display: flex; }
-  .mobile-sticky-emergency { display: flex; }
+  .mobile-sticky-emergency { display: none; }
   .hospital-topbar { display: none; }
   .hospital-nav-links { display: none; }
   .hospital-footer-inner { grid-template-columns: 1fr; }
   .care-finder-grid { grid-template-columns: 1fr; }
-  .sidebar { transform: translateX(-100%); }
-  .dashboard-content { margin-left: 0; padding: 20px 16px; }
+  .dashboard-content { padding: 20px 16px; }
+  .clinical-status-pill { display: none; }
+  .dashboard-user-chip .chip-details { display: none; }
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .auth-card { padding: 28px 20px; }
   .otp-inputs input { width: 42px; height: 50px; font-size: 1.2rem; }

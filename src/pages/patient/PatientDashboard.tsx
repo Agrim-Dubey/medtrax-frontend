@@ -53,9 +53,33 @@ export default function PatientDashboard() {
 
   return (
     <div>
-      <div className="page-header">
-        <motion.h1 initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>Welcome, {user?.username || 'Patient'} 👋</motion.h1>
-        <p>Your comprehensive health overview</p>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16, marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em', margin: 0 }}>
+            Welcome back, {user?.username || 'Patient'}
+          </h1>
+          <p style={{ color: '#94a3b8', fontSize: '0.88rem', margin: '6px 0 0' }}>
+            Personal Health Records, Teleconsultations & Vitals Overview
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => navigate('/patient/chat')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <MessageSquare size={14} /> Doctor Messages
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => navigate('/patient/appointments')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <Calendar size={14} /> Book New Care
+          </button>
+        </div>
       </div>
 
       <div className="stats-grid" style={{ marginBottom: 24 }}>
@@ -90,32 +114,48 @@ export default function PatientDashboard() {
       <div
         style={{
           marginBottom: 24,
-          padding: '16px 20px',
-          borderRadius: 12,
-          background: 'linear-gradient(135deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.8) 100%)',
+          padding: '16px 22px',
+          borderRadius: 14,
+          background: 'rgba(15, 23, 42, 0.75)',
           border: '1px solid rgba(56, 189, 248, 0.25)',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: 12,
+          gap: 14,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <HeartPulse size={22} color="#38bdf8" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 10,
+              background: 'rgba(56, 189, 248, 0.12)',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--accent)',
+              flexShrink: 0,
+            }}
+          >
+            <HeartPulse size={22} />
+          </div>
           <div>
-            <strong style={{ fontSize: '0.95rem', color: '#f8fafc', display: 'block' }}>
+            <strong style={{ fontSize: '0.95rem', color: '#f8fafc', display: 'block', fontWeight: 700 }}>
               AI Symptom Checker & Daily Medication Care Plan
             </strong>
             <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-              Check acute symptoms for emergency red flags, or view your organized morning-to-night dosing schedule.
+              Check acute symptoms for emergency triage, or review your personalized daily dosing schedule.
             </span>
           </div>
         </div>
         <button
           className="btn btn-primary btn-sm"
           onClick={() => navigate('/patient/ai-agents')}
-          style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}
         >
           Open AI Health Suite <ChevronRight size={14} />
         </button>

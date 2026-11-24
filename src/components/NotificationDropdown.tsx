@@ -136,15 +136,15 @@ export const NotificationDropdown: React.FC = () => {
               transition={{ duration: 0.15 }}
               style={{
                 position: 'absolute',
-                top: 'calc(100% + 8px)',
+                top: 'calc(100% + 10px)',
                 right: 0,
-                width: 320,
-                background: 'rgba(15, 23, 42, 0.95)',
-                backdropFilter: 'blur(16px)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 'var(--radius-lg)',
-                boxShadow: '0 16px 36px rgba(0, 0, 0, 0.6)',
-                zIndex: 100,
+                width: 360,
+                maxWidth: 'calc(100vw - 32px)',
+                background: '#0f172a',
+                border: '1px solid #1e293b',
+                borderRadius: '12px',
+                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+                zIndex: 1000,
                 overflow: 'hidden',
               }}
             >
