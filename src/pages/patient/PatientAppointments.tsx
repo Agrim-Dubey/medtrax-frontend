@@ -93,7 +93,13 @@ export default function PatientAppointments() {
     if (!selectedDoctor || !date || !selectedSlot) return toast.error('Select doctor, date & time');
     setBooking(true);
     try {
-      await appointmentsAPI.bookAppointment({ doctor_id: selectedDoctor.id, appointment_date: date, appointment_time: selectedSlot, reason });
+      await appointmentsAPI.bookAppointment({
+        doctor: selectedDoctor.id,
+        doctor_id: selectedDoctor.id,
+        appointment_date: date,
+        appointment_time: selectedSlot,
+        reason,
+      });
       toast.success('Appointment requested!');
       setTab('list'); setSelectedDoctor(null); setDate(''); setSlots([]); setSelectedSlot(''); setReason('');
       const r = await appointmentsAPI.getPatientAppointments(); setAppointments(r.data);

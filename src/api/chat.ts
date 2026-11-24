@@ -86,5 +86,5 @@ export const chatAPI = {
   sendMessage: (roomId: number, content: string) =>
     api.post<ChatMessage>(`/api/chat/room/${roomId}/send/`, { content }),
   markAsRead: (roomId: number) =>
-    api.post<{ status: string; marked_read: number }>(`/api/chat/room/${roomId}/read/`),
+    api.post<{ message?: string; status?: string; marked_read?: number }>(`/api/chat/room/${roomId}/read/`),
 };
