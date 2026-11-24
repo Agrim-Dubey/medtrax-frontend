@@ -26,6 +26,16 @@ import {
   Building2,
   Lock,
   Star,
+  Menu,
+  X,
+  Mic,
+  MicOff,
+  Camera,
+  CameraOff,
+  RefreshCw,
+  QrCode,
+  Calendar,
+  Check,
 } from 'lucide-react';
 import ThreeBackground from '../components/ThreeBackground';
 import { useAuth } from '../context/AuthContext';
@@ -34,14 +44,47 @@ export default function Landing() {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
 
+  // Mobile drawer state
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   // Search & Care Finder states
   const [careMode, setCareMode] = useState<'video' | 'inclinic' | 'ai'>('video');
   const [selectedSpecialty, setSelectedSpecialty] = useState('cardiology');
   const [selectedCity, setSelectedCity] = useState('Mumbai');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Interactive showcase state
+  // Interactive showcase tab state
   const [activeShowcase, setActiveShowcase] = useState<'queue' | 'ai' | 'rx' | 'telehealth'>('queue');
+
+  // Interactive Queue Simulator state
+  const [currentToken, setCurrentToken] = useState(28);
+  const [yourToken, setYourToken] = useState(31);
+
+  // Interactive AI Triage Simulator state
+  const [triageScenario, setTriageScenario] = useState(0);
+
+  // Interactive Prescription state
+  const [rxVerified, setRxVerified] = useState(false);
+
+  // Interactive Telehealth HUD state
+  const [isMicMuted, setIsMicMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isPipFlipped, setIsPipFlipped] = useState(false);
+  const [snapshotFlash, setSnapshotFlash] = useState(false);
+
+  // Doctor Consultation Modal state
+  interface DoctorModalData {
+    name: string;
+    qualification: string;
+    role: string;
+    city: string;
+    rating: number;
+    reviews: number;
+    experience: string;
+  }
+  const [selectedDoctorForModal, setSelectedDoctorForModal] = useState<DoctorModalData | null>(null);
+  const [selectedSlotTime, setSelectedSlotTime] = useState('11:30 AM');
+  const [selectedSlotDate, setSelectedSlotDate] = useState('Today');
 
   // FAQ accordion state
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -52,14 +95,71 @@ export default function Landing() {
     }
   }, [isAuthenticated, user, navigate]);
 
-  const handleSearchAction = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearchAction = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (isAuthenticated) {
       navigate('/patient/appointments');
     } else {
       navigate('/signup');
     }
   };
+
+  const symptomQuickChips = [
+    { label: 'Chest Tightness', spec: 'cardiology', query: 'Exertional pressure or discomfort' },
+    { label: 'Pediatric High Fever', spec: 'pediatrics', query: 'Child high grade fever & chills' },
+    { label: 'Migraine & Aura', spec: 'neurology', query: 'Unilateral pulsating head pain' },
+    { label: 'Sprained Ankle', spec: 'orthopedics', query: 'Joint swelling and weight-bearing pain' },
+    { label: 'Skin Allergy / Rash', spec: 'general', query: 'Acute erythematous rash' },
+    { label: 'Diabetes Follow-up', spec: 'general', query: 'HbA1c & fasting glucose review' },
+  ];
+
+  const handleSymptomChipClick = (chip: typeof symptomQuickChips[0]) => {
+    setSelectedSpecialty(chip.spec);
+    setSearchQuery(chip.query);
+  };
+
+  const triageScenarios = [
+    {
+      symptoms: 'Exertional chest pressure radiating to left shoulder, resolved after 5 mins of rest.',
+      urgency: 'HIGH ACUITY (LEVEL 2 EMERGENT)',
+      urgencyColor: '#f87171',
+      urgencyBg: 'rgba(239, 68, 68, 0.15)',
+      specialty: 'Interventional Cardiology',
+      diagnostic: 'Immediate 12-lead ECG, Troponin I, Lipid Profile',
+      contraindication: '0 Interactions with current medications',
+      actionPrompt: 'Schedule Priority Cardiology Slot',
+    },
+    {
+      symptoms: 'Toddler (2 yrs) with 102.8°F fever, dry cough, mild lethargy for 24 hours.',
+      urgency: 'URGENT CARE (LEVEL 3 URGENT)',
+      urgencyColor: '#fbbf24',
+      urgencyBg: 'rgba(251, 191, 36, 0.15)',
+      specialty: 'Pediatrics & Child Wellness',
+      diagnostic: 'Pediatric clinical examination & rapid antigen',
+      contraindication: 'Weight-adjusted Paracetamol dosage verified',
+      actionPrompt: 'Connect with Pediatrician On-Duty',
+    },
+    {
+      symptoms: 'Persistent bilateral tension-type headache with neck stiffness for 4 days.',
+      urgency: 'ROUTINE CARE (LEVEL 4 NON-URGENT)',
+      urgencyColor: '#34d399',
+      urgencyBg: 'rgba(52, 211, 153, 0.15)',
+      specialty: 'Neurology & Internal Medicine',
+      diagnostic: 'Routine neurological screening & ergonomic evaluation',
+      contraindication: 'Safe for NSAID short-course therapy',
+      actionPrompt: 'Book Video Teleconsult Today',
+    },
+    {
+      symptoms: 'Acute lateral ankle twisting injury while jogging, severe local edema.',
+      urgency: 'URGENT EVALUATION (LEVEL 4)',
+      urgencyColor: '#60a5fa',
+      urgencyBg: 'rgba(96, 165, 250, 0.15)',
+      specialty: 'Orthopedics & Sports Medicine',
+      diagnostic: 'Weight-bearing bilateral ankle radiographs (X-Ray)',
+      contraindication: 'R.I.C.E. protocol initiated',
+      actionPrompt: 'Reserve Orthopedic OPD Token',
+    },
+  ];
 
   const specialtiesList = [
     {
@@ -178,6 +278,24 @@ export default function Landing() {
     },
   ];
 
+  // Queue simulation logic
+  const handleStepQueue = () => {
+    if (currentToken < yourToken) {
+      setCurrentToken((prev) => prev + 1);
+    } else {
+      setCurrentToken(28);
+      setYourToken(31);
+    }
+  };
+
+  const handleResetQueue = () => {
+    setCurrentToken(28);
+    setYourToken(31);
+  };
+
+  const tokensAhead = Math.max(0, yourToken - currentToken);
+  const estimatedWaitMins = tokensAhead * 3;
+
   return (
     <div className="page-container">
       <ThreeBackground />
@@ -186,16 +304,16 @@ export default function Landing() {
       <div className="hospital-topbar">
         <div className="hospital-topbar-left">
           <span className="emergency-pill">
-            <PhoneCall size={12} /> 24/7 Emergency Hotline: 1800-MED-TRAX (1800-633-8729)
+            <PhoneCall size={12} /> 24/7 Emergency Dispatch: 1800-MED-TRAX (1800-633-8729)
           </span>
           <span className="pulse-badge">
-            <span className="pulse-dot" /> 14 Specialists Online On-Call
+            <span className="pulse-dot" /> 14 Board-Certified Specialists On-Call
           </span>
         </div>
         <div className="hospital-topbar-right">
-          <span>NABH Accredited Hospital Network</span>
+          <span>NABH Accredited Tertiary Network</span>
           <span>•</span>
-          <span>ISO 27001 Certified Health Tech</span>
+          <span>ISO 27001 Certified Infrastructure</span>
         </div>
       </div>
 
@@ -208,7 +326,7 @@ export default function Landing() {
             </div>
             <div className="hospital-brand-text">
               <h1>MedTrax</h1>
-              <span>Health System & Telehealth</span>
+              <span>Hospital System & Telehealth</span>
             </div>
           </div>
 
@@ -237,9 +355,136 @@ export default function Landing() {
             <button className="btn btn-primary btn-sm" onClick={() => navigate('/signup')}>
               Book Appointment <ArrowRight size={14} />
             </button>
+            <button
+              className="mobile-hamburger-btn"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open Navigation Menu"
+            >
+              <Menu size={20} />
+            </button>
           </div>
         </div>
       </nav>
+
+      {/* Mobile Navigation Drawer */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              className="mobile-drawer-overlay"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            <motion.div
+              className="mobile-drawer"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 16 }}>
+                  <div className="hospital-brand">
+                    <div className="hospital-logo-icon" style={{ width: 32, height: 32 }}>
+                      <HeartPulse size={18} />
+                    </div>
+                    <div className="hospital-brand-text">
+                      <h1 style={{ fontSize: '1.1rem' }}>MedTrax</h1>
+                      <span style={{ fontSize: '0.62rem' }}>Mobile Care</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setMobileMenuOpen(false)}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                  >
+                    <X size={22} />
+                  </button>
+                </div>
+
+                <div className="mobile-drawer-nav">
+                  <div
+                    className="mobile-nav-item"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.getElementById('care-finder')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <Stethoscope size={18} color="var(--accent)" /> Find Care & Doctors
+                  </div>
+                  <div
+                    className="mobile-nav-item"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.getElementById('specialties')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <HeartPulse size={18} color="var(--success)" /> Clinical Specialties
+                  </div>
+                  <div
+                    className="mobile-nav-item"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.getElementById('clinical-showcase')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <Clock size={18} color="var(--warning)" /> Live Queue & Telehealth
+                  </div>
+                  <div
+                    className="mobile-nav-item"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.getElementById('doctors')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <Award size={18} color="#818cf8" /> Medical Faculty
+                  </div>
+                  <div
+                    className="mobile-nav-item"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    <FileText size={18} color="var(--info)" /> Patient FAQs
+                  </div>
+                  <a
+                    href="tel:18006338729"
+                    className="mobile-nav-item"
+                    style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: '#f87171' }}
+                  >
+                    <PhoneCall size={18} color="#f87171" /> 24/7 Emergency Line
+                  </a>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button className="btn btn-secondary btn-full" onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}>
+                  Sign In
+                </button>
+                <button className="btn btn-primary btn-full" onClick={() => { setMobileMenuOpen(false); navigate('/signup'); }}>
+                  Book Appointment <ArrowRight size={14} />
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Mobile Sticky Emergency Helpline Ribbon */}
+      <div className="mobile-sticky-emergency">
+        <a href="tel:18006338729">
+          <PhoneCall size={16} /> 24/7 Trauma: 1800-MED-TRAX
+        </a>
+        <button
+          className="btn btn-sm"
+          style={{ background: '#ffffff', color: '#991b1b', fontWeight: 700, padding: '4px 10px', fontSize: '0.78rem' }}
+          onClick={() => navigate('/signup')}
+        >
+          Book Now
+        </button>
+      </div>
 
       {/* Hero Section */}
       <section className="hospital-hero">
@@ -291,7 +536,11 @@ export default function Landing() {
                 <button
                   type="button"
                   className={`care-tab-btn ${careMode === 'ai' ? 'active' : ''}`}
-                  onClick={() => setCareMode('ai')}
+                  onClick={() => {
+                    setCareMode('ai');
+                    document.getElementById('clinical-showcase')?.scrollIntoView({ behavior: 'smooth' });
+                    setActiveShowcase('ai');
+                  }}
                 >
                   <Sparkles size={14} /> AI Symptom Triage
                 </button>
@@ -351,6 +600,21 @@ export default function Landing() {
                 Find Available Care <ArrowRight size={15} />
               </button>
             </form>
+
+            {/* Quick Symptom Suggestion Chips */}
+            <div className="symptom-chips-row">
+              <span className="symptom-chip-label">Quick Symptoms:</span>
+              {symptomQuickChips.map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className={`symptom-chip ${selectedSpecialty === chip.spec && searchQuery === chip.query ? 'active' : ''}`}
+                  onClick={() => handleSymptomChipClick(chip)}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Trust Metrics Strip */}
@@ -399,7 +663,10 @@ export default function Landing() {
           </button>
           <button
             className="btn btn-secondary btn-sm"
-            onClick={() => navigate('/signup')}
+            onClick={() => {
+              setActiveShowcase('ai');
+              document.getElementById('clinical-showcase')?.scrollIntoView({ behavior: 'smooth' });
+            }}
           >
             Instant AI Triage
           </button>
@@ -410,11 +677,11 @@ export default function Landing() {
       <section className="showcase-section" id="clinical-showcase">
         <div className="section-header-center">
           <div className="section-tag">
-            <Activity size={14} /> Technology Architecture
+            <Activity size={14} /> Interactive Technology Architecture
           </div>
           <h2 className="section-title">Engineered for Frictionless Healthcare</h2>
           <p className="section-subtitle">
-            Explore how MedTrax bridges high-fidelity clinical operations, AI safety diagnostics, and patient convenience in a unified interface.
+            Explore interactive live demonstrations of MedTrax&apos;s real-time queue tokens, clinical AI diagnostics, and cryptographic prescription security.
           </p>
         </div>
 
@@ -464,14 +731,31 @@ export default function Landing() {
               >
                 <div>
                   <span style={{ fontSize: '0.8rem', color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase' }}>
-                    Live Queue Telemetry
+                    Live Queue Telemetry Simulator
                   </span>
                   <h3 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '8px 0 12px 0' }}>
                     Eliminating Crowded Hospital Waiting Rooms
                   </h3>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: 20 }}>
-                    Receive a real-time smart token. The algorithm computes physician consultation velocity, adjusts for complex case variations, and alerts your phone when you need to arrive at the consultation cabin.
+                    Experience our dynamic virtual queue. Test the interactive simulation below to see real-time token progression and automated cabin-entry notifications.
                   </p>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      className="interactive-action-btn"
+                      onClick={handleStepQueue}
+                      style={{ background: 'var(--accent-gradient)', color: '#030712', borderColor: 'transparent' }}
+                    >
+                      <RefreshCw size={14} /> Advance Queue Token ({currentToken} → {currentToken >= yourToken ? 28 : currentToken + 1})
+                    </button>
+                    <button
+                      type="button"
+                      className="interactive-action-btn"
+                      onClick={handleResetQueue}
+                    >
+                      Reset Token
+                    </button>
+                  </div>
                   <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
                     <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <CheckCircle2 size={16} color="var(--success)" /> Live queue position synced over WebSockets
@@ -497,19 +781,42 @@ export default function Landing() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Department: Cardiology OPD</span>
                     <span className="pulse-badge">
-                      <span className="pulse-dot" /> Live Status
+                      <span className="pulse-dot" /> Live Telemetry
                     </span>
                   </div>
+
+                  {currentToken >= yourToken ? (
+                    <motion.div
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      style={{
+                        padding: '16px',
+                        background: 'rgba(52, 211, 153, 0.15)',
+                        border: '1px solid #34d399',
+                        borderRadius: 10,
+                        textAlign: 'center',
+                        marginBottom: 16,
+                      }}
+                    >
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#34d399' }}>
+                        🎉 NOW CALLING TOKEN #{yourToken}
+                      </div>
+                      <div style={{ fontSize: '0.82rem', color: '#f1f5f9', marginTop: 4 }}>
+                        Please proceed to Cabin 4B (Dr. Vikramaditya Sharma).
+                      </div>
+                    </motion.div>
+                  ) : null}
+
                   <div style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
                     <div style={{ flex: 1, padding: 16, background: 'rgba(56, 189, 248, 0.08)', borderRadius: 10, border: '1px solid rgba(56, 189, 248, 0.2)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>CURRENT TOKEN</div>
-                      <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#38bdf8' }}>#28</div>
+                      <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#38bdf8' }}>#{currentToken}</div>
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Inside Cabin</div>
                     </div>
                     <div style={{ flex: 1, padding: 16, background: 'rgba(52, 211, 153, 0.08)', borderRadius: 10, border: '1px solid rgba(52, 211, 153, 0.2)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>YOUR TOKEN</div>
-                      <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#34d399' }}>#31</div>
-                      <div style={{ fontSize: '0.72rem', color: '#34d399' }}>3 Patients Ahead</div>
+                      <div style={{ fontSize: '2.2rem', fontWeight: 900, color: '#34d399' }}>#{yourToken}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#34d399' }}>{tokensAhead} Patients Ahead</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255, 255, 255, 0.03)', borderRadius: 8, fontSize: '0.85rem' }}>
@@ -518,7 +825,9 @@ export default function Landing() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', marginTop: 8, background: 'rgba(255, 255, 255, 0.03)', borderRadius: 8, fontSize: '0.85rem' }}>
                     <span style={{ color: 'var(--text-secondary)' }}>Estimated Cabin Entry:</span>
-                    <span style={{ fontWeight: 600, color: 'var(--warning)' }}>~ 8 mins</span>
+                    <span style={{ fontWeight: 600, color: tokensAhead === 0 ? '#34d399' : 'var(--warning)' }}>
+                      {tokensAhead === 0 ? 'Now Serving!' : `~ ${estimatedWaitMins} mins`}
+                    </span>
                   </div>
                 </div>
               </motion.div>
@@ -535,14 +844,29 @@ export default function Landing() {
               >
                 <div>
                   <span style={{ fontSize: '0.8rem', color: '#818cf8', fontWeight: 700, textTransform: 'uppercase' }}>
-                    Clinical Safety & Triage
+                    Clinical Safety & Triage Engine
                   </span>
                   <h3 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '8px 0 12px 0' }}>
-                    AI-Assisted Symptom Evaluation & Drug Safety
+                    Interactive Symptom Case Assessment
                   </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: 20 }}>
-                    Our integrated clinical AI assistant pre-screens patient complaints, categorizes urgency levels, recommends appropriate hospital departments, and automatically flags potential drug-drug contraindications.
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: 16 }}>
+                    Select different clinical test cases to observe how our AI agent evaluates urgency, assigns medical specialties, and verifies drug-safety contraindications in real time:
                   </p>
+
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                    {['Chest Discomfort', 'Child High Fever', 'Chronic Headache', 'Ankle Injury'].map((title, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        className={`interactive-action-btn ${triageScenario === i ? 'selected' : ''}`}
+                        onClick={() => setTriageScenario(i)}
+                        style={triageScenario === i ? { background: '#818cf8', color: '#0a0f1e', borderColor: '#818cf8' } : {}}
+                      >
+                        {title}
+                      </button>
+                    ))}
+                  </div>
+
                   <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
                     <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <CheckCircle2 size={16} color="var(--success)" /> Pre-consultation SOAP note generation
@@ -566,27 +890,44 @@ export default function Landing() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <span style={{ fontSize: '0.82rem', color: '#818cf8', fontWeight: 600 }}>Triage Report #TRG-9021</span>
-                    <span style={{ padding: '3px 8px', borderRadius: 4, background: 'rgba(52, 211, 153, 0.15)', color: '#34d399', fontSize: '0.75rem', fontWeight: 700 }}>
-                      ROUTINE CARE
+                    <span style={{ fontSize: '0.82rem', color: '#818cf8', fontWeight: 600 }}>Triage Report #TRG-902{triageScenario + 1}</span>
+                    <span
+                      style={{
+                        padding: '3px 8px',
+                        borderRadius: 4,
+                        background: triageScenarios[triageScenario].urgencyBg,
+                        color: triageScenarios[triageScenario].urgencyColor,
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {triageScenarios[triageScenario].urgency}
                     </span>
                   </div>
                   <div style={{ padding: '12px 14px', background: 'rgba(255, 255, 255, 0.04)', borderRadius: 8, marginBottom: 12 }}>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PATIENT REPORTED SYMPTOMS</div>
                     <div style={{ fontSize: '0.88rem', color: '#fff', marginTop: 4 }}>
-                      "Intermittent chest pressure following heavy exertion, resolved within 5 minutes at rest."
+                      &ldquo;{triageScenarios[triageScenario].symptoms}&rdquo;
                     </div>
                   </div>
                   <div style={{ padding: '12px 14px', background: 'rgba(56, 189, 248, 0.06)', borderRadius: 8, border: '1px solid rgba(56, 189, 248, 0.15)', marginBottom: 12 }}>
                     <div style={{ fontSize: '0.75rem', color: 'var(--accent)', fontWeight: 600 }}>CLINICAL AI ASSESSMENT</div>
                     <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-                      Suggested Specialty: <strong>Cardiovascular Medicine</strong>
+                      Suggested Specialty: <strong>{triageScenarios[triageScenario].specialty}</strong>
                       <br />
-                      Recommended Diagnostic: Resting ECG & Lipid Panel
+                      Recommended Diagnostic: {triageScenarios[triageScenario].diagnostic}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: '#34d399' }}>
-                    <ShieldCheck size={16} /> 0 Drug Interactions Detected in Active Medications
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.78rem', color: '#34d399' }}>
+                      <ShieldCheck size={16} /> {triageScenarios[triageScenario].contraindication}
+                    </div>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => navigate('/signup')}
+                    >
+                      {triageScenarios[triageScenario].actionPrompt} →
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -608,9 +949,18 @@ export default function Landing() {
                   <h3 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '8px 0 12px 0' }}>
                     Tamper-Evident Digital Prescriptions & PDF Letterhead
                   </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: 20 }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: 16 }}>
                     Every prescription issued on MedTrax is cryptographically verifiable, complete with doctor licensing registration, QR verification codes, detailed dosage frequencies, and automated pill reminder schedules.
                   </p>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                    <button
+                      type="button"
+                      className="interactive-action-btn"
+                      onClick={() => setRxVerified(!rxVerified)}
+                    >
+                      <QrCode size={14} /> {rxVerified ? 'Hide Verification Ledger' : 'Simulate Pharmacy QR Verification'}
+                    </button>
+                  </div>
                   <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
                     <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <CheckCircle2 size={16} color="var(--success)" /> Instant high-resolution PDF download with official hospital letterhead
@@ -643,6 +993,22 @@ export default function Landing() {
                       <div style={{ fontSize: '0.72rem', color: '#34d399', fontWeight: 600 }}>VERIFIED DIGITAL SIGNATURE</div>
                     </div>
                   </div>
+
+                  {rxVerified && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      style={{ padding: '10px 14px', background: 'rgba(52, 211, 153, 0.12)', border: '1px solid #34d399', borderRadius: 8, marginBottom: 14, fontSize: '0.78rem', color: '#34d399' }}
+                    >
+                      <div style={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Check size={14} /> Cryptographic Proof Validated
+                      </div>
+                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', marginTop: 3 }}>
+                        Hash: `sha256-9a4f21b7e...` • Dispensed Status: 1/1 Available • State Pharmacy Council Compliant
+                      </div>
+                    </motion.div>
+                  )}
+
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: 14 }}>
                     <strong>Diagnosis:</strong> Essential Hypertension (ICD-10: I10)
                   </div>
@@ -658,7 +1024,12 @@ export default function Landing() {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     <span>Physician: Dr. Vikramaditya Sharma (MD, DM)</span>
-                    <span style={{ color: 'var(--accent)', cursor: 'pointer' }}>View Sample PDF →</span>
+                    <span
+                      style={{ color: 'var(--accent)', cursor: 'pointer', fontWeight: 600 }}
+                      onClick={() => navigate('/signup')}
+                    >
+                      Generate Your Rx →
+                    </span>
                   </div>
                 </div>
               </motion.div>
@@ -680,9 +1051,28 @@ export default function Landing() {
                   <h3 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '8px 0 12px 0' }}>
                     Ultra-Low Latency Encrypted Video Consults
                   </h3>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: 20 }}>
-                    Experience HD teleconsultations without downloading cumbersome third-party software. Built on modern WebSockets and WebRTC standards for seamless audio/video clarity and clinical telemetry.
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', lineHeight: 1.7, marginBottom: 16 }}>
+                    Experience HD teleconsultations without downloading third-party apps. Built on modern WebSockets and WebRTC standards for seamless audio/video clarity and clinical telemetry.
                   </p>
+                  <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                    <button
+                      type="button"
+                      className="interactive-action-btn"
+                      onClick={() => setIsPipFlipped(!isPipFlipped)}
+                    >
+                      <RefreshCw size={14} /> Toggle Doctor / Patient View
+                    </button>
+                    <button
+                      type="button"
+                      className="interactive-action-btn"
+                      onClick={() => {
+                        setSnapshotFlash(true);
+                        setTimeout(() => setSnapshotFlash(false), 500);
+                      }}
+                    >
+                      <Camera size={14} /> Clinical Snapshot
+                    </button>
+                  </div>
                   <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10, fontSize: '0.86rem', color: 'var(--text-secondary)' }}>
                     <li style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <CheckCircle2 size={16} color="var(--success)" /> In-call synchronous prescription writing & note taking
@@ -705,21 +1095,46 @@ export default function Landing() {
                     boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
                   }}
                 >
-                  <div style={{ position: 'relative', width: '100%', height: 180, background: 'rgba(15, 23, 42, 0.8)', borderRadius: 10, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ position: 'relative', width: '100%', height: 190, background: snapshotFlash ? '#ffffff' : 'rgba(15, 23, 42, 0.8)', borderRadius: 10, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.2s' }}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'linear-gradient(135deg, #0284c7, #38bdf8)', margin: '0 auto 10px auto', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#030712', fontWeight: 800, fontSize: '1.4rem' }}>
-                        VS
+                      <div style={{ width: 64, height: 64, borderRadius: '50%', background: isPipFlipped ? 'linear-gradient(135deg, #10b981, #3b82f6)' : 'linear-gradient(135deg, #0284c7, #38bdf8)', margin: '0 auto 10px auto', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#030712', fontWeight: 800, fontSize: '1.4rem' }}>
+                        {isPipFlipped ? 'YOU' : 'VS'}
                       </div>
-                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Dr. Vikramaditya Sharma</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Chief of Cardiology • 1080p HD Encrypted</div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>
+                        {isPipFlipped ? 'Patient Perspective (Live)' : 'Dr. Vikramaditya Sharma'}
+                      </div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                        {isPipFlipped ? 'Encrypted Video Stream' : 'Chief of Cardiology • 1080p HD'}
+                      </div>
                     </div>
                     <div style={{ position: 'absolute', bottom: 10, right: 10, width: 70, height: 50, background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(56, 189, 248, 0.4)', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                      You (PIP)
+                      {isPipFlipped ? 'Dr. Sharma' : 'You (PIP)'}
                     </div>
                     <div style={{ position: 'absolute', top: 10, left: 10, padding: '3px 8px', borderRadius: 4, background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', fontSize: '0.72rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}>
                       <span className="pulse-dot" style={{ background: '#f87171', boxShadow: '0 0 8px #f87171' }} /> 14:22 REC
                     </div>
+
+                    {/* In-Call Controls Overlay */}
+                    <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', gap: 6 }}>
+                      <button
+                        type="button"
+                        onClick={() => setIsMicMuted(!isMicMuted)}
+                        style={{ background: isMicMuted ? '#ef4444' : 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', padding: 6, borderRadius: '50%', cursor: 'pointer' }}
+                        title={isMicMuted ? 'Unmute' : 'Mute'}
+                      >
+                        {isMicMuted ? <MicOff size={14} /> : <Mic size={14} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsCameraOff(!isCameraOff)}
+                        style={{ background: isCameraOff ? '#ef4444' : 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', padding: 6, borderRadius: '50%', cursor: 'pointer' }}
+                        title={isCameraOff ? 'Start Video' : 'Stop Video'}
+                      >
+                        {isCameraOff ? <CameraOff size={14} /> : <Camera size={14} />}
+                      </button>
+                    </div>
                   </div>
+
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 14, textAlign: 'center' }}>
                     <div style={{ padding: '8px 4px', background: 'rgba(255,255,255,0.03)', borderRadius: 6 }}>
                       <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>HEART RATE</div>
@@ -776,7 +1191,10 @@ export default function Landing() {
                 </span>
                 <button
                   className="btn btn-secondary btn-sm"
-                  onClick={() => navigate('/signup')}
+                  onClick={() => {
+                    setSelectedSpecialty(spec.id);
+                    document.getElementById('care-finder')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
                   Book Slot →
                 </button>
@@ -915,7 +1333,7 @@ export default function Landing() {
 
               <button
                 className="btn btn-primary btn-full btn-sm"
-                onClick={() => navigate('/signup')}
+                onClick={() => setSelectedDoctorForModal(doc)}
               >
                 Book Consultation <ArrowRight size={13} />
               </button>
@@ -923,6 +1341,89 @@ export default function Landing() {
           ))}
         </div>
       </section>
+
+      {/* Doctor Slot Booking Modal */}
+      <AnimatePresence>
+        {selectedDoctorForModal && (
+          <div className="modal-overlay" onClick={() => setSelectedDoctorForModal(null)}>
+            <motion.div
+              className="modal-content"
+              style={{ maxWidth: 480, width: '100%' }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Schedule with {selectedDoctorForModal.name}</h3>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--accent)' }}>{selectedDoctorForModal.role}</div>
+                </div>
+                <button
+                  onClick={() => setSelectedDoctorForModal(null)}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div style={{ marginBottom: 18 }}>
+                <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Select Consultation Day
+                </label>
+                <div style={{ display: 'flex', gap: 10, marginTop: 6 }}>
+                  {['Today', 'Tomorrow'].map((day) => (
+                    <button
+                      key={day}
+                      type="button"
+                      className={`btn btn-sm ${selectedSlotDate === day ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ flex: 1 }}
+                      onClick={() => setSelectedSlotDate(day)}
+                    >
+                      <Calendar size={13} /> {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>
+                  Available Time Slots
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginTop: 8 }}>
+                  {['10:00 AM', '11:30 AM', '02:15 PM', '03:45 PM', '05:00 PM', '06:30 PM'].map((time) => (
+                    <div
+                      key={time}
+                      className={`slot-pill ${selectedSlotTime === time ? 'selected' : ''}`}
+                      onClick={() => setSelectedSlotTime(time)}
+                    >
+                      {time}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn btn-secondary btn-full"
+                  onClick={() => setSelectedDoctorForModal(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary btn-full"
+                  onClick={() => {
+                    setSelectedDoctorForModal(null);
+                    navigate(isAuthenticated ? '/patient/appointments' : '/signup');
+                  }}
+                >
+                  Confirm Slot ({selectedSlotTime}) →
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Frequently Asked Questions */}
       <section className="showcase-section" id="faq">

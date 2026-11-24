@@ -1023,12 +1023,185 @@ a:hover { color: #7dd3fc; }
   color: var(--text-muted);
 }
 
+/* ─── Mobile Navigation & Interactive Enhancements ─── */
+.mobile-hamburger-btn {
+  display: none;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: var(--text-primary);
+  padding: 8px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+.mobile-hamburger-btn:hover {
+  background: rgba(56, 189, 248, 0.12);
+  border-color: var(--accent);
+}
+
+.mobile-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 24, 0.8);
+  backdrop-filter: blur(8px);
+  z-index: 100;
+}
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 82%;
+  max-width: 340px;
+  background: rgba(10, 15, 30, 0.98);
+  border-left: 1px solid rgba(56, 189, 248, 0.2);
+  z-index: 101;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.8);
+}
+.mobile-drawer-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+.mobile-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  transition: var(--transition);
+}
+.mobile-nav-item:hover, .mobile-nav-item:active {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: rgba(56, 189, 248, 0.3);
+  color: var(--accent);
+}
+
+/* Mobile Sticky Emergency Helpline Ribbon */
+.mobile-sticky-emergency {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #991b1b, #dc2626);
+  color: #ffffff;
+  padding: 10px 16px;
+  z-index: 90;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 -4px 20px rgba(220, 38, 38, 0.4);
+}
+.mobile-sticky-emergency a {
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+/* Symptom Quick Suggestion Chips */
+.symptom-chips-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.symptom-chip-label {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+.symptom-chip {
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(56, 189, 248, 0.06);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.symptom-chip:hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+.symptom-chip.active {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.3), rgba(129, 140, 248, 0.3));
+  border-color: var(--accent);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Interactive Controls for Showcase */
+.interactive-action-btn {
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  background: rgba(15, 23, 42, 0.8);
+  color: var(--text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: var(--transition);
+}
+.interactive-action-btn:hover {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Doctor Modal Slot Selection */
+.slot-pill {
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: var(--transition);
+}
+.slot-pill:hover, .slot-pill.selected {
+  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  border-color: transparent;
+  color: #030712;
+  box-shadow: 0 2px 10px rgba(56, 189, 248, 0.35);
+}
+
 /* ─── Responsive Adjustments ─── */
 @media (max-width: 1024px) {
   .hospital-footer-inner { grid-template-columns: 1fr 1fr; gap: 30px; }
   .care-finder-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 768px) {
+  .mobile-hamburger-btn { display: flex; }
+  .mobile-sticky-emergency { display: flex; }
   .hospital-topbar { display: none; }
   .hospital-nav-links { display: none; }
   .hospital-footer-inner { grid-template-columns: 1fr; }

@@ -22,6 +22,6 @@ export const authAPI = {
   resendPasswordResetOTP: (data: { email: string }) =>
     api.post('/api/auth/resend-password-reset-otp/', data),
   verifyToken: () => api.get('/api/auth/verify-token/'),
-  refreshToken: () => api.post('/api/auth/refresh-token/'),
+  refreshToken: (data?: { refresh_token?: string }) => api.post('/api/auth/refresh-token/', data),
   logout: () => api.post('/api/auth/logout/'),
 };

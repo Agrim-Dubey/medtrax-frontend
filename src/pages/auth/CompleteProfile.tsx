@@ -119,6 +119,9 @@ export default function CompleteProfile() {
         if (res.data.access_token) {
           localStorage.setItem('medtrax_token', res.data.access_token);
         }
+        if (res.data.refresh_token) {
+          localStorage.setItem('medtrax_refresh_token', res.data.refresh_token);
+        }
         login(res.data.user);
         sessionStorage.removeItem('medtrax_pending_email');
         sessionStorage.removeItem('medtrax_pending_role');

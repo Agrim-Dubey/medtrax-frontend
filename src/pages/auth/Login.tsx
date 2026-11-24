@@ -71,6 +71,9 @@ export default function Login() {
         if (data.access_token) {
           localStorage.setItem('medtrax_token', data.access_token);
         }
+        if (data.refresh_token) {
+          localStorage.setItem('medtrax_refresh_token', data.refresh_token);
+        }
         login(data.user);
         toast.success(`Welcome back, ${data.user?.username || 'User'}!`);
         navigate(data.user.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard');

@@ -54,9 +54,15 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
       try {
-        const refreshRes = await api.post('/api/auth/refresh-token/');
+        const storedRefreshToken = localStorage.getItem('medtrax_refresh_token');
+        const refreshRes = await api.post('/api/auth/refresh-token/', {
+          refresh_token: storedRefreshToken || undefined,
+        });
         if (refreshRes.data?.access_token) {
           localStorage.setItem('medtrax_token', refreshRes.data.access_token);
+        }
+        if (refreshRes.data?.refresh_token) {
+          localStorage.setItem('medtrax_refresh_token', refreshRes.data.refresh_token);
         }
         processQueue(null);
         return api(originalRequest);
@@ -64,6 +70,7 @@ api.interceptors.response.use(
         processQueue(refreshError);
         localStorage.removeItem('medtrax_user');
         localStorage.removeItem('medtrax_token');
+        localStorage.removeItem('medtrax_refresh_token');
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

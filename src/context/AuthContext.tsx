@@ -34,35 +34,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const verifySession = useCallback(async () => {
     try {
       const stored = localStorage.getItem('medtrax_user');
-      if (stored) {
-        setUser(JSON.parse(stored));
-      }
-      const res = await authAPI.verifyToken();
-      if (res.data.success && res.data.user) {
-        const userData = res.data.user;
-        setUser(userData);
-        localStorage.setItem('medtrax_user', JSON.stringify(userData));
-      } else {
-        setUser(null);
-        localStorage.removeItem('medtrax_user');
-      }
-    } catch {
-      const stored = localStorage.getItem('medtrax_user');
+      const token = localStorage.getItem('medtrax_token');
+      const refreshToken = localStorage.getItem('medtrax_refresh_token');
+
       if (stored) {
         try {
-          await authAPI.refreshToken();
-          const res = await authAPI.verifyToken();
-          if (res.data.success && res.data.user) {
-            setUser(res.data.user);
-            localStorage.setItem('medtrax_user', JSON.stringify(res.data.user));
-            return;
-          }
+          setUser(JSON.parse(stored));
         } catch {
-          // refresh also failed
+          // invalid json
         }
       }
-      setUser(null);
-      localStorage.removeItem('medtrax_user');
+
+      if (!token && !refreshToken) {
+        setUser(null);
+        localStorage.removeItem('medtrax_user');
+        return;
+      }
+
+      try {
+        const res = await authAPI.verifyToken();
+        if (res.data?.success && res.data?.user) {
+          const userData = res.data.user;
+          setUser(userData);
+          localStorage.setItem('medtrax_user', JSON.stringify(userData));
+          return;
+        }
+      } catch {
+        if (refreshToken) {
+          try {
+            const refreshRes = await authAPI.refreshToken({ refresh_token: refreshToken });
+            if (refreshRes.data?.access_token) {
+              localStorage.setItem('medtrax_token', refreshRes.data.access_token);
+            }
+            if (refreshRes.data?.refresh_token) {
+              localStorage.setItem('medtrax_refresh_token', refreshRes.data.refresh_token);
+            }
+            const res = await authAPI.verifyToken();
+            if (res.data?.success && res.data?.user) {
+              setUser(res.data.user);
+              localStorage.setItem('medtrax_user', JSON.stringify(res.data.user));
+              return;
+            }
+          } catch {
+            // Refresh failed
+          }
+        }
+        setUser(null);
+        localStorage.removeItem('medtrax_user');
+        localStorage.removeItem('medtrax_token');
+        localStorage.removeItem('medtrax_refresh_token');
+      }
     } finally {
       setLoading(false);
     }
@@ -104,6 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('medtrax_user');
     localStorage.removeItem('medtrax_token');
+    localStorage.removeItem('medtrax_refresh_token');
   }, []);
 
   const updateUser = useCallback((userData: Partial<User>) => {
