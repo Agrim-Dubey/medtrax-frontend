@@ -58,6 +58,7 @@ export default function VideoConsultation() {
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const durationTimerRef = useRef<any>(null);
+  const pendingCandidates = useRef<RTCIceCandidateInit[]>([]);
 
   // Initialize Call & Media
   const initCall = useCallback(async () => {
@@ -144,28 +145,65 @@ export default function VideoConsultation() {
           const data = JSON.parse(event.data);
 
           if (data.type === 'user_joined') {
+            if (data.user_id === user?.user_id) return;
             setRemoteUserJoined(true);
-            // If remote joined, create offer
-            try {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              ws.send(JSON.stringify({ type: 'offer', offer }));
-            } catch (err) {
-              console.error('Error creating offer:', err);
+
+            // Only Doctor initiates the offer to prevent glare/collision
+            if (isDoctor && pc.signalingState === 'stable') {
+              try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                ws.send(JSON.stringify({ type: 'offer', offer }));
+              } catch (err) {
+                console.error('Error creating offer:', err);
+              }
+            } else if (!isDoctor && ws.readyState === WebSocket.OPEN) {
+              // Patient notifies that they are in the room and ready
+              ws.send(JSON.stringify({ type: 'peer_ready' }));
+            }
+          } else if (data.type === 'peer_ready') {
+            if (isDoctor && pc.signalingState === 'stable') {
+              try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                ws.send(JSON.stringify({ type: 'offer', offer }));
+              } catch (err) {
+                console.error('Error creating offer on peer_ready:', err);
+              }
             }
           } else if (data.type === 'offer' && data.offer) {
             setRemoteUserJoined(true);
-            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            ws.send(JSON.stringify({ type: 'answer', answer }));
-            setCallActive(true);
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+              while (pendingCandidates.current.length > 0) {
+                const cand = pendingCandidates.current.shift();
+                if (cand) await pc.addIceCandidate(new RTCIceCandidate(cand));
+              }
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              ws.send(JSON.stringify({ type: 'answer', answer }));
+              setCallActive(true);
+            } catch (err) {
+              console.error('Error handling offer:', err);
+            }
           } else if (data.type === 'answer' && data.answer) {
-            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-            setCallActive(true);
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+              while (pendingCandidates.current.length > 0) {
+                const cand = pendingCandidates.current.shift();
+                if (cand) await pc.addIceCandidate(new RTCIceCandidate(cand));
+              }
+              setCallActive(true);
+            } catch (err) {
+              console.error('Error setting remote answer:', err);
+            }
           } else if (data.type === 'ice_candidate' && data.candidate) {
             try {
-              await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+              if (pc.remoteDescription) {
+                await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
+              } else {
+                pendingCandidates.current.push(data.candidate);
+              }
             } catch (e) {
               console.warn('Error adding ICE candidate:', e);
             }
@@ -176,6 +214,15 @@ export default function VideoConsultation() {
           }
         } catch {
           // ignore parsing error
+        }
+      };
+
+      ws.onclose = (event) => {
+        setConnecting(false);
+        if (event.code === 4001) {
+          toast.error('Authentication expired. Please re-login.');
+        } else if (event.code === 4003) {
+          toast.error('You are not authorized for this appointment consultation.');
         }
       };
 

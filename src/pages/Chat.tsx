@@ -170,6 +170,11 @@ export default function Chat() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data.type === 'error' || data.error) {
+          const errMsg = data.message || data.error;
+          toast.error(typeof errMsg === 'string' ? errMsg : 'Chat message error');
+          return;
+        }
         if (data.type === 'connection_established' && data.messages) {
           // If server sends history
           if (data.messages.length > 0) {
@@ -209,6 +214,16 @@ export default function Chat() {
         }
       } catch {
         // error parsing json
+      }
+    };
+
+    ws.onclose = (event) => {
+      if (event.code === 4006) {
+        toast('This consultation has ended. Chat is in read-only mode.', { icon: 'ℹ️' });
+      } else if (event.code === 4029) {
+        toast.error('Message rate limit reached. Please wait a moment.');
+      } else if (event.code === 4001) {
+        toast.error('Authentication expired. Please re-login.');
       }
     };
 

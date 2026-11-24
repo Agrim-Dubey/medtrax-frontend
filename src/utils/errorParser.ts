@@ -100,3 +100,4 @@ export function parseApiError(err: any): ParsedError {
     role,
   };
 }
+
