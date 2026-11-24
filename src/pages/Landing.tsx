@@ -300,23 +300,6 @@ export default function Landing() {
     <div className="page-container">
       <ThreeBackground />
 
-      {/* Top Emergency & Accreditation Triage Bar */}
-      <div className="hospital-topbar">
-        <div className="hospital-topbar-left">
-          <span className="emergency-pill">
-            <PhoneCall size={12} /> 24/7 Emergency Dispatch: 1800-MED-TRAX (1800-633-8729)
-          </span>
-          <span className="pulse-badge">
-            <span className="pulse-dot" /> 14 Board-Certified Specialists On-Call
-          </span>
-        </div>
-        <div className="hospital-topbar-right">
-          <span>NABH Accredited Tertiary Network</span>
-          <span>•</span>
-          <span>ISO 27001 Certified Infrastructure</span>
-        </div>
-      </div>
-
       {/* Glassmorphic Hospital Header / Navbar */}
       <nav className="hospital-navbar">
         <div className="hospital-nav-inner">
@@ -449,13 +432,6 @@ export default function Landing() {
                   >
                     <FileText size={18} color="var(--info)" /> Patient FAQs
                   </div>
-                  <a
-                    href="tel:18006338729"
-                    className="mobile-nav-item"
-                    style={{ borderColor: 'rgba(239, 68, 68, 0.3)', color: '#f87171' }}
-                  >
-                    <PhoneCall size={18} color="#f87171" /> 24/7 Emergency Line
-                  </a>
                 </div>
               </div>
 
@@ -472,20 +448,6 @@ export default function Landing() {
         )}
       </AnimatePresence>
 
-      {/* Mobile Sticky Emergency Helpline Ribbon */}
-      <div className="mobile-sticky-emergency">
-        <a href="tel:18006338729">
-          <PhoneCall size={16} /> 24/7 Trauma: 1800-MED-TRAX
-        </a>
-        <button
-          className="btn btn-sm"
-          style={{ background: '#ffffff', color: '#991b1b', fontWeight: 700, padding: '4px 10px', fontSize: '0.78rem' }}
-          onClick={() => navigate('/signup')}
-        >
-          Book Now
-        </button>
-      </div>
-
       {/* Hero Section */}
       <section className="hospital-hero">
         <motion.div
@@ -495,10 +457,7 @@ export default function Landing() {
         >
           <div className="hero-badge-wrap">
             <div className="hospital-pill-badge">
-              <Sparkles size={14} /> Next-Gen Clinical Care & Telehealth Platform
-            </div>
-            <div className="hospital-pill-badge" style={{ borderColor: 'rgba(52, 211, 153, 0.3)', color: '#34d399' }}>
-              <Star size={13} fill="#34d399" /> 4.95 / 5 Patient Satisfaction (12,000+ Consults)
+              <Sparkles size={14} /> Modern Healthcare Management & Teleconsultation Platform
             </div>
           </div>
 
